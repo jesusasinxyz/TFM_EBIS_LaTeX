@@ -1,2 +1,22 @@
 \clearpage\thispagestyle{empty}\null\clearpage
 \TFMChapter{Conclusiones y Trabajo Futuro}
+
+\TFMSection{Conclusiones}
+Retomando los objetivos específicos planteados en el Capítulo 1, puede concluirse que la prueba de concepto desarrollada los cubre en su práctica totalidad. Se ha implementado una interfaz conversacional funcional, un pipeline serverless de procesamiento documental que extrae y normaliza automáticamente la información de los documentos de proveedores, un sistema RAG capaz de fundamentar sus respuestas en dicha documentación, una arquitectura multiagente que coordina la recopilación de requisitos, la consulta de información y precios, la elaboración del itinerario y la generación de la propuesta comercial, una integración con fuentes externas de precios en tiempo real, una API que conecta todos los componentes, la generación automática de contenido visual asociado al destino, y un despliegue completo sobre infraestructura cloud gestionada.
+
+El objetivo de pruebas y validación es el que se cumple de forma más parcial: existe una suite de pruebas automatizadas que cubre de forma razonable la lógica de los agentes, la API y el pipeline documental, pero, como se ha señalado en el Capítulo 6, todavía falta una evaluación sistemática con métricas cuantitativas y una validación con usuarios reales, quedando ambas como trabajo futuro inmediato.
+
+Más allá del cumplimiento formal de objetivos, el resultado más relevante del proyecto es haber comprobado que es viable combinar procesamiento documental inteligente, recuperación aumentada por generación y una arquitectura multiagente con puntos de control humano, para automatizar buena parte del trabajo repetitivo de una agencia de viajes sin eliminar la supervisión profesional en las decisiones con impacto comercial. El diseño de dos puntos obligatorios de interacción humana en el bucle —selección de precios y revisión final— ha resultado ser la pieza que hace que el sistema sea utilizable en un contexto real: el sistema propone y acelera, pero no decide por sí solo.
+
+\TFMSection{Trabajo Futuro}
+A partir del análisis realizado en los capítulos anteriores, se identifican las siguientes líneas de trabajo futuro, ordenadas de mayor a menor prioridad para una eventual evolución de la prueba de concepto hacia un producto real:
+
+\begin{enumerate}
+\item \textbf{Evaluación formal del sistema.} Definir métricas cuantitativas (precisión y \textit{recall} de la recuperación, calidad del itinerario, coste y latencia por propuesta) y realizar una validación con usuarios reales de la agencia, tal y como se ha dejado planteado en los Capítulos 5 y 6.
+\item \textbf{Revisión de seguridad previa a un despliegue real.} Restringir la política de acceso entre orígenes de la API, desactivar la exposición de trazas técnicas en producción, e introducir una definición de infraestructura como código que permita auditar y reproducir de forma fiable los permisos configurados en AWS.
+\item \textbf{Cumplimiento normativo de protección de datos.} Formalizar la base legal y los acuerdos de tratamiento de datos necesarios para el envío de información personal de clientes y documentación de proveedores a servicios de terceros, en caso de manejar datos reales.
+\item \textbf{Activación del reranking del sistema RAG.} Evaluar el impacto en calidad, coste y latencia de activar el módulo de reordenación semántica ya implementado pero actualmente deshabilitado.
+\item \textbf{Persistencia externa del estado conversacional interrumpido.} Sustituir el mecanismo de memoria en proceso del orquestador por un almacenamiento externo también para las conversaciones detenidas en un punto de revisión humana, evitando la pérdida de progreso ante un reinicio del contenedor.
+\item \textbf{Saneamiento de deuda técnica identificada.} Eliminar o documentar explícitamente los agentes de una iteración anterior del diseño que ya no forman parte del grafo activo, unificar el modelo utilizado para el reconocimiento de documentos entre la fase de desarrollo y la de producción, y corregir las pruebas automatizadas desactualizadas detectadas en el Capítulo 6.
+\item \textbf{Ampliación de fuentes y proveedores.} Incorporar más proveedores de vuelos y alojamiento más allá del servicio externo actual, y ampliar la cobertura documental a más destinos y tipos de proveedor.
+\end{enumerate}

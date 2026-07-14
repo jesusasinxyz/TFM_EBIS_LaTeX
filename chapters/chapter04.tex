@@ -2,68 +2,92 @@
 \TFMChapter{Implementación}
 
 \TFMSection{Introducción}
+Mientras que el Capítulo 3 describía qué se ha diseñado y por qué, este capítulo describe cómo se ha construido cada componente de la solución. El objetivo de esta descripción no es únicamente documentar el código, sino explicar qué función cumple cada pieza dentro del proceso de generación de una propuesta de viaje y qué valor aporta al profesional que la utiliza: dónde se automatiza una tarea manual, dónde se reduce el riesgo de error o de información desactualizada, y dónde se mantiene deliberadamente el control humano.
+
 \TFMSection{Estructura del Código}
-Repositorios, módulos principales, organización del backend, frontend, agentes y funciones Lambda
+El proyecto se organiza como un monorepo con cuatro grandes bloques, correspondientes a los cuatro componentes descritos en el capítulo anterior:
+
+\begin{verbatim}
+src/                  Orquestador multiagente (LangGraph)
+  graph.py              Definición del grafo: nodos, aristas, interrupciones
+  nodes.py              Identificadores de cada nodo del grafo
+  state.py              Estado compartido entre agentes
+  state_persistence.py  Serialización del estado para su persistencia
+  agents/               Un módulo por agente especializado
+  clients/              Clientes a RAG, backend, almacenamiento y precios
+
+front/                Interfaz de usuario (Streamlit)
+  views/                Pantallas de conversación y de histórico
+
+backend_api/          API de persistencia (FastAPI)
+  routers/              Endpoints de autenticación, documentos y propuestas
+  repositories/         Acceso a la base de datos
+
+scripts/aws-lambda/   Pipeline de procesamiento documental (AWS Lambda)
+  pdf_to_image/         Conversión de PDF a imágenes
+  image-to-markdown/    Extracción de contenido y metadatos
+  index-markdown/       Fragmentación e indexación
+
+templates/            Plantillas corporativas de la propuesta (PPTX)
+\end{verbatim}
+
+Esta organización mantiene separadas cuatro responsabilidades que, aunque colaboran para producir una única propuesta de viaje, tienen ciclos de vida y necesidades de despliegue distintas: el pipeline documental se ejecuta de forma asíncrona y esporádica (solo cuando se carga un documento nuevo), mientras que el orquestador y la interfaz atienden conversaciones en tiempo real, y la API de persistencia da servicio a ambos por igual.
 
 \TFMSection{Implementación del pipeline de procesamiento documental}
-Explicar las Lambdas y las transformaciones realizadas:
+El valor de este pipeline es concreto: convierte un tarifario o catálogo en PDF, tal y como lo entrega un proveedor turístico, en información que el sistema puede consultar en lenguaje natural pocos minutos después de su carga, sin que ningún empleado tenga que leerlo, resumirlo o clasificarlo manualmente. Se implementa como tres funciones independientes encadenadas:
+
 \begin{tfmbullets}
-\item PDF a imágenes.
-\item Imágenes a Markdown.
-\item Limpieza y normalización.
-\item Extracción de metadatos.
-\item Chunking e indexación.
+\item \textbf{PDF a imágenes.} Cada página del documento se renderiza como una imagen de alta resolución mediante la librería PyMuPDF. Esta conversión, aunque pueda parecer un paso intermedio prescindible, es la que permite tratar correctamente tarifarios con maquetación compleja (tablas de precios, logotipos, columnas) que un extractor de texto de PDF convencional interpretaría de forma desordenada.
+\item \textbf{Imágenes a Markdown.} Cada imagen se procesa con un modelo de lenguaje con capacidad de visión, que reconstruye el contenido en formato Markdown conservando la jerarquía del documento original (encabezados, tablas, condiciones de grupo, precios) en lugar de devolver texto plano sin estructura. Adicionalmente, si el documento contiene enlaces a páginas web con información complementaria, el sistema los visita y añade ese contenido al Markdown final, ampliando así la información disponible sin intervención humana.
+\item \textbf{Limpieza, normalización y extracción de metadatos.} A partir del Markdown generado, un segundo modelo extrae de forma estructurada los datos de negocio del documento: destino, proveedor, actividades, precios, condiciones y campos de accesibilidad, entre otros. El propio proceso de extracción normaliza topónimos con doble denominación oficial (por ejemplo, unifica ``Alacant''/``Alicante'') e incorpora una regla explícita para no inventar datos de contacto (teléfonos, correos o webs) que no aparezcan literalmente en el documento, mitigando así uno de los riesgos característicos de la IA generativa aplicada a documentación real.
+\item \textbf{Chunking e indexación.} El Markdown se divide en fragmentos de tamaño acotado, se genera una representación vectorial de cada fragmento y se indexa en la base de datos vectorial junto con los metadatos de destino y actividades, quedando así disponible para el sistema RAG.
 \end{tfmbullets}
+
+Cabe señalar, como observación técnica honesta, que la fase de prototipado (el script de desarrollo local) utiliza un modelo Gemini para el reconocimiento de las imágenes, mientras que la función Lambda finalmente desplegada en producción utiliza un modelo GPT-4o-mini de OpenAI para esa misma tarea. Es una divergencia entre la documentación inicial del proyecto y la implementación final que convendría unificar en una futura iteración, y que se recoge como línea de trabajo futuro en el Capítulo 8.
 
 \TFMSection{Implementación del sistema RAG}
-Explicar:
-\begin{tfmbullets}
-\item Construcción de consultas.
-\item Filtros por destino, tipo de actividad, precio o fechas.
-\item Recuperación desde OpenSearch.
-\item Reranking.
-\end{tfmbullets}
+El sistema RAG es el componente que permite que las respuestas del sistema estén fundamentadas en la documentación real de los proveedores, en lugar de depender únicamente del conocimiento general del modelo de lenguaje, lo que reduce el riesgo de que la propuesta incluya información inventada o desactualizada.
 
-\clearpage
-\begin{tfmbullets}
-\item Construcción del contexto.
-\item Generación de la respuesta.
-\end{tfmbullets}
+La recuperación combina dos criterios: una búsqueda por similitud semántica (k-NN sobre los embeddings de cada fragmento) y un filtro exacto por destino y provincia, de manera que una consulta sobre un destino concreto no recupere, por alta similitud semántica, contenido de un destino distinto. Los embeddings se generan con el modelo Titan Text Embeddings de Amazon Bedrock, tanto en el momento de la indexación como en el de la consulta.
+
+El sistema incorpora también un módulo de reordenación semántica de resultados (\textit{reranking}) sobre Amazon Bedrock, implementado y funcional, pero actualmente no invocado en la ruta de consulta activa. Se documenta como una funcionalidad ya construida y pendiente de activar tras evaluar su impacto en coste y latencia, más que como una carencia del diseño.
+
+El agente de información y el agente de precios son los dos consumidores de este sistema: el primero lo utiliza para recuperar contexto cultural y actividades relacionadas con el destino y los intereses del cliente, aplicando un umbral mínimo de relevancia antes de considerar un fragmento útil; el segundo lo utiliza de forma complementaria a las fuentes externas de precios, para localizar alojamientos concretos mencionados en la documentación de los proveedores.
 
 \TFMSection{Implementación del sistema multiagente}
+
 \subsection{Agente orquestador}
+Es el punto de entrada de cada conversación y el responsable de que el sistema entienda qué viaje se está solicitando antes de empezar a trabajar. Analiza cada mensaje del profesional y extrae de forma estructurada los datos necesarios (cliente, origen, destino, fechas e intereses), solicitando una aclaración cuando falta información en lugar de generar una propuesta con datos incompletos. Una decisión de diseño relevante para la experiencia de uso es que, si el profesional cambia de destino a mitad de la conversación, el agente descarta automáticamente la información y los precios ya recopilados para el destino anterior, evitando así que la propuesta final mezcle datos de dos viajes distintos; si en cambio solo cambian las fechas, conserva el contexto cultural ya recuperado y solo recalcula los precios.
+
 \subsection{Agente de información}
+Transforma la documentación turística indexada en un relato legible: recupera, para el destino y cada uno de los intereses expresados por el cliente, los fragmentos más relevantes de la base documental, descarta los que no superan un umbral mínimo de relevancia y sintetiza el resultado en un contexto cultural y un listado de actividades recomendadas. El valor de este agente es doble: evita que el profesional tenga que buscar manualmente en los documentos de los proveedores, y fundamenta la respuesta en contenido real en lugar de en conocimiento genérico del modelo.
+
 \subsection{Agente de precios}
+Combina dos fuentes de información para presentar opciones de vuelo y alojamiento: un servicio externo que consulta precios de mercado en tiempo real, y la propia base documental, para alojamientos concretos que solo aparecen en los catálogos de los proveedores. La selección de candidatos (los vuelos más económicos y los alojamientos mejor valorados) se calcula de forma determinista en código, no mediante el modelo de lenguaje, lo que garantiza que el orden de las opciones presentadas sea siempre coherente y verificable. El resultado no se aplica automáticamente: se presentan varias opciones de cada categoría para que el profesional elija, manteniendo la decisión comercial en manos humanas.
+
 \subsection{Generación del itinerario}
+A partir de la información turística recuperada, los precios seleccionados y las preferencias expresadas durante la conversación, se genera un itinerario día a día. Varios cálculos que podrían delegarse en el modelo de lenguaje se resuelven deliberadamente en código para garantizar su exactitud: la duración del viaje se calcula a partir de las fechas, y los horarios de los vuelos de llegada y salida se derivan de los precios seleccionados y se incorporan como instrucción al itinerario, en lugar de dejar que el modelo interprete horas de vuelo en formato libre. El itinerario también respeta un límite de extensión calculado a partir del espacio real disponible en la plantilla de la propuesta, de forma que el texto generado encaje siempre en el documento final sin necesidad de retoque manual.
+
 \subsection{Generación de la propuesta comercial}
+La propuesta final combina dos elementos generados de forma independiente: una imagen de portada asociada al destino y a las actividades seleccionadas, generada mediante un modelo de generación de imágenes, y el propio itinerario. Ambos se integran en una plantilla corporativa en formato PPTX ya existente, editable por el profesional, sustituyendo los textos e imágenes de la plantilla por el contenido generado y ajustando dinámicamente el número de diapositivas del itinerario según la duración del viaje. El valor de este agente es que entrega un documento comercial ya maquetado y listo para revisar o enviar, sin requerir intervención de diseño.
+
 \subsection{Gestión del estado y transiciones}
+Todos los agentes anteriores comparten un mismo estado, que conserva los parámetros del viaje, la información recuperada, los precios, el itinerario y el resultado de cada etapa. Este estado se conserva de forma persistente cada vez que el flujo se detiene para una decisión humana, lo que permite que un profesional pueda interrumpir la elaboración de una propuesta y retomarla más adelante, incluso desde otra sesión, sin perder el trabajo ya realizado por el sistema.
 
 \TFMSection{Integración con modelos de lenguaje}
-Modelos utilizados, prompts, respuestas estructuradas, gestión de errores y control del contexto.
+Cada agente utiliza el modelo de lenguaje más adecuado a su tarea, atendiendo a un equilibrio entre coste y fiabilidad: modelos con cuota de uso económica para tareas de alto volumen (interpretación de la conversación, reconocimiento de documentos) y modelos con mayor capacidad de generación estructurada para tareas donde un error tiene más impacto en el resultado final (recuperación de información, cálculo de precios, redacción del itinerario). En todos los casos se exige al modelo una salida estructurada validada contra un esquema de datos predefinido, en lugar de interpretar texto libre, lo que evita errores de formato en las respuestas y hace que el comportamiento del sistema sea predecible y verificable.
 
 \TFMSection{Integración con fuentes externas}
-APIs de hoteles y vuelos, MCP y estrategia de fallback cuando el RAG no contiene información suficiente.
+La consulta de precios en tiempo real se realiza mediante un servicio externo que unifica el acceso a distintos proveedores de vuelos y alojamiento. Las búsquedas de vuelo de ida y de vuelta se ejecutan en paralelo como dos búsquedas independientes, lo que permite combinar aerolíneas distintas para cada trayecto si esa combinación resulta más económica. Los resultados de cada proveedor se normalizan a un formato interno común antes de presentarse al profesional, de forma que la interfaz no dependa del formato particular de cada fuente externa.
 
 \TFMSection{Implementación de la API}
-Endpoints, autenticación, validaciones, comunicación con los agentes y persistencia.
+La API de persistencia expone los servicios necesarios para que la interfaz y el pipeline documental compartan una única fuente de verdad: autenticación de usuarios, alta y consulta de metadatos documentales, y alta, consulta y actualización del estado de las propuestas. El acceso de los usuarios finales se protege mediante un token de sesión, mientras que el pipeline documental se autentica con una cuenta de servicio independiente, de forma que las credenciales de un empleado nunca se comparten con procesos automáticos internos. Una propuesta solo puede modificarse por la persona que la creó, aunque su consulta desde el histórico está abierta a cualquier usuario autenticado, en línea con el uso compartido que hace de la herramienta un equipo comercial.
 
 \TFMSection{Implementación del frontend}
-Pantallas, chat, formularios de viaje, visualización del itinerario y propuesta final.
+La interfaz se ha construido como una aplicación conversacional sencilla, con dos pantallas: una de conversación, donde el profesional describe el viaje, ve la respuesta del sistema en tiempo real y toma las dos decisiones clave del proceso (selección de precios y revisión final de la propuesta); y otra de histórico, donde puede consultar, descargar o retomar cualquier propuesta generada anteriormente. Este diseño permite que un empleado sin conocimientos técnicos utilice un sistema multiagente complejo sin necesidad de entender su funcionamiento interno, a través de una conversación y de dos puntos de decisión claramente señalados.
 
-\clearpage
 \TFMSection{Despliegue e Infra en AWS}
-Explicar:
-\begin{tfmbullets}
-\item S3.
-\item Lambda.
-\item Step Functions.
-\item OpenSearch Serverless.
-\item DynamoDB.
-\item API Gateway, si se utiliza.
-\item IAM.
-\item Variables de entorno.
-\item Logs y despliegue.
-\end{tfmbullets}
+El pipeline documental se despliega como funciones independientes sobre AWS Lambda, cada una con sus dependencias empaquetadas en capas reutilizables, lo que mantiene cada función ligera y facilita su actualización individual. La API de persistencia se despliega también como contenedor Lambda, expuesta a través de una API Gateway. El orquestador multiagente y la interfaz, al ejecutarse en un mismo proceso de larga duración, se despliegan como un único contenedor en una instancia con Docker, en lugar de como función sin servidor. Toda la infraestructura utiliza en la actualidad servicios gestionados de almacenamiento, base de datos y búsqueda vectorial de AWS, configurados manualmente en el momento de escribir esta memoria; la ausencia de una definición de infraestructura como código es una limitación conocida del proyecto, recogida como trabajo futuro en el Capítulo 8.
 
 \TFMSection{Seguridad y gestión de errores}
-Permisos IAM, secretos, validación de entradas, reintentos, timeouts y tratamiento de fallos en servicios externos.
+El sistema incorpora varios mecanismos para tolerar fallos sin interrumpir la experiencia del profesional: reintentos automáticos ante errores transitorios de los proveedores de modelos de lenguaje, y una degradación controlada cuando el sistema RAG o las fuentes externas de precios no están disponibles, de forma que el flujo continúa (por ejemplo, sin contexto documental o sin precios de una fuente) en lugar de interrumpirse por completo. Esta decisión es especialmente relevante en un sistema orientado a un caso de uso comercial, donde una propuesta incompleta pero disponible resulta más útil que un error que bloquee todo el proceso.

@@ -1,6 +1,22 @@
 \clearpage\thispagestyle{empty}\null\clearpage
 \TFMChapter{Pruebas y Validación del Producto}
 \TFMSection{Introducción}
+Este capítulo describe las pruebas realizadas sobre la solución. Se detalla en primer lugar la suite de pruebas automatizadas del proyecto, que verifica el comportamiento de los componentes descritos en el Capítulo 4. Las secciones de usabilidad y observabilidad en producción quedan pendientes de completar, ya que requieren datos de uso real que, al tratarse de una prueba de concepto, todavía no se han recogido de forma sistemática.
+
 \TFMSection{Tests Unitarios/Funcionales y Evaluación del Usuario}
+El proyecto cuenta con una suite de pruebas automatizadas basada en \texttt{pytest}, organizada en dos niveles: pruebas unitarias, que verifican de forma aislada la lógica de cada componente, y pruebas de integración, que verifican el comportamiento conjunto de varios componentes reales. En el momento de escribir esta memoria, la suite reúne 109 pruebas recogidas correctamente, distribuidas principalmente en:
+
+\begin{tfmbullets}
+\item Pruebas unitarias de los agentes del sistema multiagente (agente de información, agente de precios), del cliente RAG, de la persistencia del estado y de la generación de la propuesta comercial.
+\item Pruebas unitarias de la API de persistencia: repositorios de acceso a datos, autenticación y cada uno de los routers (documentos, propuestas, salud del servicio).
+\item Pruebas unitarias de las funciones del pipeline documental (conversión de PDF a imágenes y extracción a Markdown).
+\item Pruebas de integración del flujo completo del grafo multiagente y del cliente RAG contra la base de datos vectorial real, incluyendo casos de prueba específicos por tipo de consulta (por ejemplo, búsquedas sobre museos y parques, o sobre parques acuáticos).
+\item Pruebas de integración de la API de propuestas y de su repositorio de datos.
+\end{tfmbullets}
+
+Como parte de esta revisión se ha comprobado también el estado de la suite mediante recolección de pruebas (\texttt{pytest --collect-only}), sin llegar a ejecutarlas por completo, ya que varias de ellas invocan servicios externos de pago (modelos de lenguaje, generación de imágenes). Esta comprobación ha permitido detectar tres módulos con errores de recolección: dos ficheros (\texttt{test\_generate\_cover\_image.py} y \texttt{test\_generate\_ppt\_normal\_with\_cover.py}) están escritos como scripts que ejecutan aserciones directamente al importarse, en lugar de como funciones de prueba de \texttt{pytest}, y un tercero (\texttt{tests/unit/test\_ppt.py}) falla al importar una excepción (\texttt{CityNotAvailableError}) que ya no existe en el módulo \texttt{ppt\_agent}, lo que indica una prueba desactualizada respecto a una refactorización posterior del código. Se documentan aquí como hallazgo de calidad y se recogen como trabajo futuro en el Capítulo 8, junto con la ejecución completa de la suite y la medición de cobertura.
+
+La evaluación por parte de usuarios reales del sistema queda pendiente de realizar y no se incluye en esta versión de la memoria.
+
 \TFMSection{UX/Usabilidad}
 \TFMSection{Observabilidad en Producción}
