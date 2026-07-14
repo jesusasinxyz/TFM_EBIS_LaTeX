@@ -347,6 +347,73 @@
 }
 
 % =========================================================
+% ANEXOS
+% =========================================================
+% Los anexos usan una numeración independiente de los capítulos
+% (Anexo 1, Anexo 2...) y no alteran el contador \chapter ni la
+% numeración de \section, para no descuadrar los capítulos previos.
+
+\newcounter{annex}
+\renewcommand{\theannex}{\arabic{annex}}
+
+\newcommand{\TFMAnnex}[1]{%
+  \refstepcounter{annex}%
+  \clearpage
+  \addcontentsline{toc}{chapter}{%
+    Anexo \theannex\ -- #1%
+  }%
+  \markboth{Anexo \theannex\ -- #1}{Anexo \theannex\ -- #1}%
+  \pdfbookmark[0]{Anexo \theannex. #1}{annex.\theannex}%
+
+  \thispagestyle{TFMPlain}%
+
+  \begingroup
+  \setlength{\parskip}{0pt}%
+
+  \vspace*{10mm}
+
+  \begin{flushright}
+    {%
+      \TFMLightFont
+      \fontsize{36}{43.3}\selectfont
+      Anexo \theannex
+      \par
+    }
+
+    \vspace{6mm}
+
+    {%
+      \TFMLightFont
+      \fontsize{24}{28.9}\selectfont
+      #1
+      \par
+    }
+  \end{flushright}
+
+  \vspace{4.1mm}
+
+  \noindent
+  \rule{\textwidth}{0.5pt}
+
+  \vspace{8mm}
+
+  \endgroup
+}
+
+% Subapartado sin numeración propia dentro de un anexo
+\newcommand{\TFMAnnexSection}[1]{%
+  \addcontentsline{toc}{section}{#1}%
+  \vspace{6mm}
+  {%
+    \TFMLightFont
+    \fontsize{14}{17}\selectfont
+    #1
+    \par
+  }
+  \vspace{2mm}
+}
+
+% =========================================================
 % SECCIONES Y SUBSECCIONES
 % =========================================================
 
