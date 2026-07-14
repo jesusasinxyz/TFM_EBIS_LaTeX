@@ -2,71 +2,166 @@
 \TFMChapter{Metodología, Requisitos y Diseño de la Solución}
 
 \TFMSection{Introducción}
+Este capítulo describe cómo se ha planificado y diseñado la solución presentada en el Capítulo 1. En primer lugar, se expone la metodología de trabajo seguida durante el desarrollo del TFM. A continuación, se analiza el problema y el caso de uso concreto que da lugar al sistema, y se establecen los requisitos funcionales y no funcionales que debe cumplir. Por último, se presenta el diseño de la solución: la arquitectura general de la aplicación, el diseño del sistema multiagente, el diseño del pipeline de procesamiento documental, el diseño de los datos y, finalmente, la selección tecnológica que sustenta todas estas decisiones.
+
 \TFMSection{Plan de Trabajo y Metodología}
+El desarrollo del proyecto se ha organizado siguiendo una metodología ágil basada en sprints, sin la supervisión directa de un tutor durante el día a día del desarrollo, lo que ha requerido una planificación autogestionada del trabajo y revisiones periódicas propias al final de cada iteración para validar el avance y reajustar el alcance de la siguiente.
+
+El trabajo se ha extendido entre abril y julio de 2026, organizado en sprints de aproximadamente dos semanas de duración. La Tabla \ref{tab:sprints} resume las iteraciones realizadas y su objetivo principal.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}p{2.2cm}p{3.2cm}p{8.5cm}@{}}
+\toprule
+\textbf{Sprint} & \textbf{Periodo} & \textbf{Objetivo principal} \\
+\midrule
+1 & Abril (2.\ª quincena) & Análisis del problema, definición de requisitos y diseño inicial de la arquitectura. \\
+2 & Mayo (1.\ª quincena) & Diseño e implementación del pipeline de procesamiento documental (PDF a imagen y a Markdown). \\
+3 & Mayo (2.\ª quincena) & Diseño de datos, indexación en OpenSearch y primera versión del sistema RAG. \\
+4 & Junio (1.\ª quincena) & Diseño e implementación del sistema multiagente base (agente orquestador y agente de información). \\
+5 & Junio (2.\ª quincena) & Agente de precios, integración con fuentes externas y generación del itinerario. \\
+6 & Julio (1.\ª quincena) & Generación de la imagen de portada, generación de la propuesta comercial e interfaz con revisión humana. \\
+7 & Julio (2.\ª quincena) & Despliegue en AWS, pruebas, evaluación y cierre de la memoria. \\
+\bottomrule
+\end{tabular}
+\caption{Planificación de sprints del proyecto.}
+\label{tab:sprints}
+\end{table}
+
+Esta organización por sprints ha permitido abordar el proyecto de forma incremental, entregando en cada iteración un componente funcional y verificable antes de avanzar al siguiente: primero la base documental, después la capacidad de recuperación de información, a continuación la coordinación de agentes, y finalmente la interfaz y el despliegue completo del sistema.
+
 \TFMSection{Análisis de problema y caso de uso}
-Por ejemplo:
-\begin{tfmbullets}
-\item Carga de documentación.
-\item Procesamiento automático.
-\item Inicio de una conversación.
-\item Recopilación de requisitos del viaje.
-\item Consulta de información turística.
-\item Consulta de precios.
-\item Elaboración del itinerario.
-\item Generación de la propuesta comercial.
-\end{tfmbullets}
+El caso de uso principal del sistema es la generación asistida de una propuesta de viaje personalizada, desde la carga inicial de documentación hasta la entrega de una propuesta comercial revisable por un profesional. El flujo completo se compone de las siguientes fases:
+
+\begin{enumerate}
+\item \textbf{Carga de documentación.} Un documento de un proveedor turístico (tarifario, catálogo de actividades, ficha de alojamiento, etc.) se sube al sistema en formato PDF.
+\item \textbf{Procesamiento automático.} El sistema convierte el documento a imágenes, extrae su contenido a Markdown, normaliza su estructura, extrae metadatos y lo indexa en la base de conocimiento, quedando disponible para su consulta sin intervención manual.
+\item \textbf{Inicio de una conversación.} El profesional de la agencia inicia una conversación en lenguaje natural describiendo el viaje que necesita organizar.
+\item \textbf{Recopilación de requisitos del viaje.} El sistema identifica en la conversación los datos necesarios para continuar (cliente, origen, destino, fechas e intereses) y solicita aclaraciones si falta información relevante.
+\item \textbf{Consulta de información turística.} Una vez completos los requisitos, el sistema recupera de la base documental información y actividades relacionadas con el destino y los intereses indicados.
+\item \textbf{Consulta de precios.} El sistema obtiene opciones de vuelo y alojamiento, combinando fuentes externas en tiempo real con información de proveedores disponible en la base documental, y presenta varias opciones al profesional para que seleccione la más adecuada.
+\item \textbf{Elaboración del itinerario.} A partir de la información recuperada, los precios seleccionados y las preferencias expresadas en la conversación, el sistema genera un itinerario día a día.
+\item \textbf{Generación de la propuesta comercial.} El sistema genera una imagen de portada asociada al destino y compone una propuesta comercial en formato editable, que el profesional revisa antes de aprobarla, corregirla con comentarios, descartarla o guardarla como borrador.
+\end{enumerate}
+
+Este caso de uso pone de manifiesto dos necesidades centrales que condicionan el diseño de la solución: por un lado, disponer de información turística siempre actualizada y correctamente recuperada a partir de documentación heterogénea; por otro, mantener al profesional en el centro del proceso de decisión, de forma que el sistema proponga y el profesional confirme, en lugar de automatizar decisiones que tienen impacto comercial directo.
 
 \TFMSection{Requisitos Funcionales}
+A partir del análisis anterior, se han definido los siguientes requisitos funcionales:
+
+\begin{itemize}
+\item \textbf{RF1.} El sistema debe permitir la carga de documentación de proveedores turísticos y su conversión automática a un formato consultable.
+\item \textbf{RF2.} El sistema debe extraer y normalizar el contenido de los documentos cargados (texto, tablas, precios, condiciones y metadatos asociados).
+\item \textbf{RF3.} El sistema debe indexar semánticamente el contenido documental en una base de datos vectorial para permitir su recuperación mediante lenguaje natural.
+\item \textbf{RF4.} El sistema debe recuperar información turística relevante para un destino y unos intereses concretos, fundamentando sus respuestas en la documentación disponible.
+\item \textbf{RF5.} El sistema debe recopilar de forma conversacional los requisitos del viaje (cliente, origen, destino, fechas e intereses) y solicitar aclaraciones cuando la información sea insuficiente.
+\item \textbf{RF6.} El sistema debe consultar precios de vuelos y alojamiento, combinando fuentes externas en tiempo real con información interna cuando la externa no esté disponible.
+\item \textbf{RF7.} El sistema debe permitir al profesional seleccionar manualmente entre varias opciones de vuelo y alojamiento antes de continuar con la generación de la propuesta.
+\item \textbf{RF8.} El sistema debe generar automáticamente un itinerario personalizado coherente con las fechas, el presupuesto y las preferencias expresadas.
+\item \textbf{RF9.} El sistema debe generar una imagen de portada relacionada con el destino y las actividades seleccionadas.
+\item \textbf{RF10.} El sistema debe generar una propuesta comercial en un formato editable, a partir de plantillas corporativas.
+\item \textbf{RF11.} El sistema debe permitir al profesional aprobar, rechazar con comentarios, descartar o guardar como borrador la propuesta generada antes de su publicación.
+\item \textbf{RF12.} El sistema debe permitir consultar el histórico de propuestas generadas y retomar una propuesta existente para continuar su edición.
+\item \textbf{RF13.} El sistema debe autenticar a los usuarios antes de permitir el acceso a sus funcionalidades.
+\end{itemize}
+
 \TFMTOCPageBreak
 \TFMSection{Requisitos No Funcionales}
+Además de los requisitos funcionales, se han considerado los siguientes requisitos no funcionales, derivados de las decisiones de diseño e implementación adoptadas:
+
+\begin{itemize}
+\item \textbf{RNF1 (Escalabilidad).} Los servicios de procesamiento y persistencia deben escalar automáticamente según la demanda, sin necesidad de aprovisionar capacidad de forma manual.
+\item \textbf{RNF2 (Disponibilidad).} El pipeline de procesamiento documental debe ejecutarse de forma asíncrona y desacoplada del resto del sistema, de modo que un fallo puntual no bloquee el resto de funcionalidades.
+\item \textbf{RNF3 (Seguridad).} El acceso a la aplicación debe estar protegido mediante autenticación, y las credenciales de los usuarios finales deben mantenerse separadas de las credenciales de servicio utilizadas internamente por el sistema.
+\item \textbf{RNF4 (Resiliencia).} El sistema debe tolerar fallos transitorios de servicios externos (proveedores de modelos de lenguaje, fuentes de precios) mediante reintentos, y debe degradar su funcionamiento de forma controlada en lugar de interrumpir el proceso completo.
+\item \textbf{RNF5 (Usabilidad).} La interacción con el sistema debe realizarse mediante una interfaz conversacional sencilla, con retroalimentación visible del progreso del proceso.
+\item \textbf{RNF6 (Mantenibilidad).} La solución debe organizarse en componentes independientes con responsabilidades claramente delimitadas, de forma que puedan evolucionar o desplegarse por separado.
+\item \textbf{RNF7 (Trazabilidad).} El sistema debe registrar los eventos relevantes de cada proceso y conservar la referencia a las fuentes documentales utilizadas en cada respuesta generada.
+\item \textbf{RNF8 (Coste).} La selección de modelos y servicios debe tener en cuenta su coste de operación, priorizando alternativas eficientes sin comprometer la calidad del resultado.
+\end{itemize}
 
 \clearpage
 \TFMSection{Arquitectura de la Aplicación}
-Diagrama del flujo/funcionamiento. Presentar un diagrama completo con:
+La solución se ha diseñado como un conjunto de componentes independientes que se comunican entre sí, en lugar de como una única aplicación monolítica. Esta decisión permite que cada componente evolucione, se despliegue y, en caso necesario, escale de forma independiente. La arquitectura se organiza en tres aplicaciones y un pipeline de procesamiento documental:
+
 \begin{tfmbullets}
-\item Frontend.
-\item API backend.
-\item Sistema multiagente.
-\item Modelos de lenguaje.
-\item RAG.
-\item OpenSearch Serverless.
-\item DynamoDB.
-\item S3.
-\item Lambdas.
-\item Step Functions.
-\item Servicios externos.
+\item \textbf{Orquestador multiagente:} implementa el flujo de generación de propuestas mediante un grafo de agentes especializados construido con \textbf{LangGraph}.
+\item \textbf{Interfaz de usuario:} aplicación web desarrollada en \textbf{Streamlit} que permite iniciar conversaciones, seleccionar opciones de precio, revisar propuestas y consultar el histórico generado.
+\item \textbf{API backend:} servicio de persistencia unificado, implementado con \textbf{FastAPI}, que da acceso a los metadatos documentales, al estado de las propuestas y a los usuarios de la aplicación.
+\item \textbf{Pipeline de procesamiento documental:} conjunto de funciones \textbf{AWS Lambda} encadenadas que transforman un documento de proveedor en información consultable por el sistema RAG.
 \end{tfmbullets}
+
+% TODO: insertar aquí un diagrama de la arquitectura completa (figura),
+% mostrando: interfaz -> orquestador multiagente -> API backend -> DynamoDB;
+% orquestador -> RAG -> OpenSearch Serverless; orquestador -> modelos de lenguaje
+% y servicios externos de precios; y, en paralelo, el pipeline documental
+% S3 -> Lambdas -> OpenSearch Serverless.
+
+El orquestador multiagente y la interfaz de usuario se ejecutan dentro del mismo proceso: la interfaz invoca directamente el grafo de agentes sin que exista una frontera HTTP entre ambos. Esta decisión de diseño simplifica la implementación de la interacción humana en el bucle, ya que el estado de la conversación y el de la generación de la propuesta comparten el mismo ciclo de vida. El API backend, en cambio, sí se comunica con el resto de componentes mediante peticiones HTTP autenticadas, actuando como capa de persistencia común tanto para los metadatos documentales generados por el pipeline como para el estado de las propuestas gestionado por el orquestador.
+
+El pipeline de procesamiento documental se ejecuta de forma completamente independiente y asíncrona respecto al resto de la aplicación: un documento puede cargarse y quedar disponible para su consulta sin que el orquestador ni la interfaz intervengan en ningún momento de ese proceso.
 
 \TFMSection{Diseño del sistema multiagente}
-Explicar cada agente:
-\begin{tfmbullets}
-\item Agente orquestador.
-\item Agente de información.
-\item Agente de precios.
-\item Agente de itinerario, si existe como agente independiente.
-\item Agente generador de la propuesta comercial.
-\end{tfmbullets}
-También las transiciones y el estado compartido.
+El núcleo de la solución es un sistema multiagente que coordina las distintas tareas necesarias para generar una propuesta de viaje: recopilar los requisitos, recuperar información, consultar precios, elaborar un itinerario, generar una imagen y componer la propuesta final. Cada tarea se ha modelado como un agente especializado, y la coordinación entre agentes se ha diseñado como un grafo de estados con un estado compartido entre todos los nodos.
 
-\TFMSection{Diseño del pipeline documental}
-Desde que se carga un PDF hasta que queda disponible para las búsquedas:
+El estado compartido almacena, entre otros elementos: los parámetros del viaje recopilados, el contexto cultural y las actividades recuperadas para el destino, las opciones de precio candidatas y la selección final, el contenido del itinerario, la ruta de la imagen de portada generada, el contenido de la propuesta comercial y su estado de revisión (borrador, publicada, rechazada o descartada).
+
+Los agentes diseñados son los siguientes:
+
+\begin{tfmbullets}
+\item \textbf{Agente orquestador:} interpreta la conversación con el profesional, extrae los parámetros del viaje y determina si la información recopilada es suficiente para continuar o si es necesario solicitar una aclaración.
+\item \textbf{Agente de información:} recupera, mediante el sistema RAG, información turística y actividades relacionadas con el destino y los intereses indicados.
+\item \textbf{Agente de precios:} obtiene opciones de vuelo y alojamiento combinando fuentes externas en tiempo real con información de proveedores disponible en la base documental.
+\item \textbf{Agente de itinerario:} elabora el itinerario día a día a partir de la información recuperada, los precios seleccionados y las preferencias expresadas en la conversación.
+\item \textbf{Agente de imagen:} genera una imagen de portada asociada al destino y a las actividades propuestas.
+\item \textbf{Agente de propuesta comercial:} compone la propuesta final en un formato editable a partir de plantillas corporativas, integrando el itinerario, la imagen de portada y los precios.
+\end{tfmbullets}
+
+El flujo entre agentes no es estrictamente secuencial: la búsqueda de información turística y la consulta de precios se ejecutan en paralelo, ya que son independientes entre sí; de la misma forma, la elaboración del itinerario y la generación de la imagen de portada se ejecutan en paralelo una vez disponible la información necesaria, y ambas deben completarse antes de componer la propuesta comercial final.
+
+Un aspecto central del diseño es la incorporación de dos puntos de \emph{interacción humana en el bucle} (\textit{human-in-the-loop}), en los que el flujo se detiene de forma obligatoria hasta recibir una decisión del profesional:
+
 \begin{enumerate}
-\item Carga en S3.
-\item Conversión de PDF a imágenes.
-\item Extracción a Markdown.
-\item Normalización.
-\item Extracción de metadatos.
-\item División en fragmentos.
-\item Generación de embeddings o indexación.
-\item Almacenamiento en OpenSearch.
-\item Consulta posterior desde el RAG.
+\item \textbf{Selección de precios:} tras consultar las opciones de vuelo y alojamiento, el flujo se detiene para que el profesional seleccione manualmente la opción de cada categoría antes de continuar.
+\item \textbf{Revisión final:} tras generar la propuesta comercial completa, el flujo se detiene para que el profesional la apruebe, la rechace indicando comentarios de corrección, la descarte o la guarde como borrador.
 \end{enumerate}
 
-Diseño de datos
+Este diseño responde directamente a la necesidad, identificada en el análisis del problema, de mantener al profesional como responsable último de las decisiones con impacto comercial, utilizando el sistema como generador de una propuesta inicial revisable y no como sustituto de su criterio.
+
+\TFMSection{Diseño del pipeline documental}
+El pipeline de procesamiento documental transforma un documento de proveedor, cargado en formato PDF, en fragmentos de información indexados y disponibles para su recuperación semántica. El diseño se organiza en tres etapas encadenadas:
+
+\begin{enumerate}
+\item \textbf{Conversión de PDF a imágenes.} El documento se descompone en una imagen por página, preservando su maquetación original (tablas, logotipos y estructura visual), dado que muchos documentos de proveedores turísticos no son texto plano sino tarifarios y catálogos con diseño gráfico.
+\item \textbf{Extracción a Markdown.} Cada imagen se procesa mediante un modelo con capacidad de visión para extraer su contenido en formato Markdown, preservando la jerarquía de encabezados, tablas y datos relevantes del negocio (precios, condiciones de grupo, disponibilidad, etc.). En esta etapa se incorpora también contenido adicional obtenido de posibles enlaces web presentes en el documento.
+\item \textbf{Normalización y extracción de metadatos.} A partir del Markdown generado, se extraen de forma estructurada los metadatos del documento (destino, proveedor, actividades, precios y condiciones), que se normalizan y se almacenan junto con el propio documento.
+\item \textbf{División en fragmentos e indexación.} El contenido en Markdown se divide en fragmentos de tamaño acotado, se genera una representación vectorial de cada fragmento y se almacena en la base de datos vectorial, enriquecida con los metadatos de destino y actividades asociados, de forma que pueda recuperarse posteriormente tanto por similitud semántica como por filtrado exacto de destino.
+\end{enumerate}
+
+Cada etapa se ha diseñado como una unidad de trabajo independiente que recibe el resultado de la etapa anterior y produce una salida bien definida para la siguiente, lo que permite ejecutar el pipeline de forma asíncrona y reprocesar una etapa concreta sin necesidad de repetir las anteriores. El resultado final de este proceso es la entrada directa del sistema RAG utilizado por el agente de información y, de forma complementaria, por el agente de precios.
 
 \TFMSection{Diseño de datos}
-DynamoDB, estructura de documentos en S3, índices de OpenSearch, metadatos, conversaciones y estado de las propuestas.
+El diseño de datos de la solución combina tres tipos de almacenamiento, cada uno adecuado al tipo de información que gestiona:
+
+\begin{tfmbullets}
+\item \textbf{Almacenamiento documental (Amazon S3):} conserva los documentos originales, las imágenes generadas a partir de cada página y el contenido en Markdown resultante del procesamiento, así como las propuestas comerciales generadas en formato editable.
+\item \textbf{Almacenamiento de estado (Amazon DynamoDB):} conserva los metadatos estructurados de cada documento procesado, el estado completo de cada propuesta en curso o finalizada (parámetros del viaje, selección de precios, itinerario, estado de revisión) y los usuarios de la aplicación.
+\item \textbf{Base de datos vectorial (Amazon OpenSearch Serverless):} conserva los fragmentos de contenido documental indexados junto con su representación vectorial y sus metadatos de destino y actividades, permitiendo su recuperación semántica filtrada por destino.
+\end{tfmbullets}
+
+Esta separación permite que cada tipo de dato se gestione con el modelo de acceso más adecuado: acceso por clave simple para los metadatos y el estado de las propuestas, almacenamiento de objetos de gran tamaño para los documentos y las imágenes, y búsqueda por similitud para el contenido indexado. Al tratarse de una prueba de concepto con patrones de acceso simples (consulta por identificador, sin necesidad de relaciones complejas entre entidades), se ha priorizado un modelo de datos sencillo y de bajo mantenimiento operativo frente a un esquema relacional.
 
 \TFMSection{Selección Tecnológica}
-Justificar AWS, OpenAI, LangGraph, OpenSearch Serverless, Lambda, Step Functions, DynamoDB, frontend y backend utilizados.
-Yo movería Selección tecnológica después de describir la arquitectura, porque así primero explicáis qué necesita el sistema y luego justificáis las tecnologías elegidas.
+La selección tecnológica se ha realizado una vez definida la arquitectura anterior, de forma que las tecnologías elegidas respondan a las necesidades identificadas en cada componente y no al contrario.
+
+\textbf{LangGraph} se ha elegido para la coordinación del sistema multiagente frente a otras alternativas de orquestación de agentes por ofrecer, de forma nativa, las dos primitivas que exige el diseño: la ejecución en paralelo de nodos independientes mediante aristas de sincronización (\textit{fan-out}/\textit{fan-in}), necesaria para ejecutar en paralelo el agente de información y el de precios, y el mecanismo de interrupción (\texttt{interrupt\_before}) que permite detener el grafo en un punto concreto para incorporar una decisión humana y reanudarlo después conservando el estado. Implementar esta misma lógica sobre una cadena secuencial simple habría requerido gestionar manualmente la sincronización y la persistencia del estado en cada punto de parada.
+
+Para los modelos de lenguaje se ha optado por una combinación de proveedores según el equilibrio entre coste y fiabilidad que exige cada tarea. \textbf{Google Gemini} (variantes \textit{Flash-Lite}) se utiliza en el agente orquestador y en el OCR documental, tareas de alto volumen de peticiones donde resulta determinante disponer de una cuota de uso gratuita elevada. \textbf{OpenAI} (\textit{GPT-4o} y \textit{GPT-5}) se utiliza en los agentes de información, precios e itinerario, donde la fiabilidad de la salida estructurada es crítica para el resto del flujo, así como para la generación de la imagen de portada. En todos los casos se ha empleado la funcionalidad de salida estructurada de LangChain sobre modelos pydantic, evitando el análisis manual de texto libre devuelto por el modelo.
+
+Para la infraestructura cloud se ha optado por servicios gestionados de \textbf{AWS} de pago por uso: \textbf{Amazon S3} para el almacenamiento de documentos, imágenes y propuestas generadas; \textbf{AWS Lambda} para el procesamiento asíncrono del pipeline documental y para desplegar la API backend, orquestadas mediante encadenamiento de eventos; \textbf{Amazon DynamoDB}, en su modalidad de facturación bajo demanda, para el estado de la aplicación, al no requerir aprovisionamiento de capacidad ni un modelo relacional; y \textbf{Amazon OpenSearch Serverless} como base de datos vectorial totalmente gestionada para la base de conocimiento, junto con \textbf{Amazon Bedrock} para la generación de los embeddings (modelo \textit{Titan Text Embeddings v2}), lo que permite mantener el pipeline de recuperación dentro del mismo proveedor cloud y las mismas credenciales IAM que el resto de servicios. Esta combinación evita administrar servidores o dimensionar capacidad de antemano, adecuado para una prueba de concepto con un volumen de uso variable y no predecible.
+
+Para exponer la API backend, construida con \textbf{FastAPI}, sobre AWS Lambda se ha utilizado \textbf{Mangum} como adaptador ASGI, lo que permite ejecutar exactamente el mismo código tanto en local (con Uvicorn) como en producción (como contenedor Lambda), sin mantener dos implementaciones distintas.
+
+Para la interfaz de usuario se ha optado por \textbf{Streamlit}, que permite construir una interfaz conversacional funcional con poco código, adecuada para una prueba de concepto en la que la prioridad es validar el flujo completo antes que desarrollar una interfaz a medida.
+
+Para la consulta de precios en tiempo real se ha optado por \textbf{SearchAPI.io}, un servicio externo que unifica el acceso a Google Flights y Google Hotels, evitando la integración directa con proveedores GDS (como Amadeus) y reduciendo la complejidad de esta parte del sistema, coherente con el carácter de prueba de concepto del proyecto.
