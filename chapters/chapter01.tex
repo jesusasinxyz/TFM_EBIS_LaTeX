@@ -1,0 +1,53 @@
+\TFMChapter{Introducción}
+
+\TFMSection{Contexto y Motivación}
+La creación de propuestas de viaje personalizadas requiere consultar información de numerosas fuentes, como documentos de proveedores, catálogos de actividades, tarifas, alojamientos, vuelos y datos específicos de cada destino. En muchas agencias, esta información se encuentra distribuida en documentos PDF, correos electrónicos, repositorios internos, servicios de almacenamiento en la nube y plataformas externas, lo que dificulta su localización y reutilización.
+
+El personal interno de las agencias de viajes debe recopilar las preferencias del cliente, buscar actividades adecuadas, consultar precios y disponibilidad y organizar toda la información en una propuesta coherente. Este proceso implica una gran carga de trabajo manual.
+
+Los sistemas de búsqueda tradicionales se basan principalmente en coincidencias exactas de palabras, por lo que pueden no recuperar información relevante cuando la consulta del usuario utiliza términos diferentes a los empleados. Además, los precios de vuelos y alojamientos son datos dinámicos que pueden no estar disponibles en documentación internar o quedar desactualizados.
+
+\clearpage
+En este contexto, las arquitecturas RAG, permiten combinar modelos de lenguaje con una base documental propia. Antes de generar una respuesta, el sistema recupera la información más relevante y la incorpora al contexto del modelo. De esta forma, es posible consultar la documentación de proveedores mediante lenguaje natural y generar respuestas fundamentadas en los datos disponibles.
+
+El proyecto también plantea el uso de agentes de inteligencia artificial especializados, capaces de coordinar diferentes tareas, como recuperar información turística, consultar precios, organizar un itinerario, generar una imagen de portada asociada al destino y actividades propuestas y generar una propuesta comercial. Cuando la información interna no sea suficiente, el sistema podrá recurrir a servicios externos para completar los datos necesarios.
+
+A partir de esta necesidad, el presente Trabajo Fin de Máster propone el desarrollo de una prueba de concepto destinada a asistir a los profesionales de una agencia de viajes en la creación de propuestas personalizadas. La solución combina procesamiento documental, recuperación de información, modelos de lenguaje y una arquitectura basada en agentes.
+
+La principal motivación es reducir el tiempo dedicado a tareas repetitivas de búsqueda, consulta y organización de información. El sistema no pretende sustituir al profesional, sino proporcionarle una herramienta de apoyo que genere una primera propuesta revisable y facilite el acceso al conocimiento disponible.
+
+Desde el punto de vista empresarial, la solución puede mejorar la eficiencia del proceso comercial, favorecer la reutilización de la documentación de proveedores y reducir la dependencia del conocimiento individual de cada empleado. Desde el punto de vista tecnológico, permite estudiar la aplicación conjunta de sistemas RAG, modelos generativos y agentes inteligentes dentro de una solución orientada a un caso de uso real.
+
+\clearpage
+\TFMSection{Objetivos Generales y Específicos}
+El objetivo principal de este Trabajo Fin de Máster ha sido el diseño y desarrollo de un sistema basado en inteligencia artificial generativa capaz de asistir a los profesionales de una agencia de viajes en la elaboración de propuestas personalizadas. La solución permite procesar documentación turística, recuperar información relevante mediante técnicas RAG y coordinar distintos agentes especializados para consultar destinos, actividades, alojamientos, vuelos y precios, integrando para ello modelos de lenguaje, servicios cloud de AWS y fuentes externas de información.
+
+Para poder cumplir con el objetivo principal, se han definido los siguientes objetivos específicos:
+\begin{itemize}
+\item \textbf{Desarrollo de una interfaz básica en Streamlit:} Implementar una interfaz sencilla y funcional que permita introducir las características del viaje, interactuar con el sistema y visualizar los resultados generados como parte de la prueba de concepto.
+\item \textbf{Implementación de un pipeline serverless en AWS de procesamiento documental:} Automatizar la ingesta y transformación de documentos turísticos, convirtiendo su contenido en información estructurada y preparada para su explotación.
+\item \textbf{Extracción y normalización de información:} Utilizar modelos de inteligencia artificial generativa para extraer texto, metadatos, actividades, destinos y precios de documentos con diferentes formatos y estructuras.
+\item \textbf{Diseño e implementación de un sistema RAG:} Desarrollar un mecanismo de recuperación semántica que permita localizar información relevante dentro de la documentación interna y utilizarla como contexto para generar respuestas con valor.
+\item \textbf{Desarrollo de una arquitectura multiagente:} Implementar agentes especializados capaces de recopilar los requisitos del usuario, consultar información turística, obtener precios y elaborar una propuesta de viaje coherente.
+\end{itemize}
+
+\clearpage
+\begin{itemize}
+\item \textbf{Integración con fuentes externas:} Incorporar servicios externos, en particular mediante SearchAPI, para consultar información dinámica sobre vuelos y alojamientos cuando los datos disponibles en la base documental no sean suficientes.
+\item \textbf{Desarrollo de una API de integración:} Implementar los servicios necesarios para comunicar la interfaz de usuario, el sistema multiagente, la base de conocimiento y los servicios externos.
+\item \textbf{Generación de contenido visual para la propuesta:} Incorporar la generación automática de una imagen de portada relacionada con el destino y las actividades seleccionadas, con el fin de enriquecer visualmente la propuesta de viaje.
+\item \textbf{Despliegue de la solución en infraestructura cloud:} Configurar los servicios de almacenamiento, procesamiento, indexación y persistencia necesarios para ejecutar la solución en AWS.
+\item \textbf{Pruebas y validación del sistema:} Evaluar el funcionamiento del procesamiento documental, la recuperación de información, la coordinación de los agentes y la calidad de las propuestas generadas.
+\end{itemize}
+
+Este conjunto de objetivos busca reducir el tiempo dedicado a tareas manuales de búsqueda, consulta y organización de información, proporcionando al profesional una herramienta de apoyo para generar propuestas de viaje personalizadas que puedan ser posteriormente revisadas y adaptadas.
+
+\TFMSection{Estructura del Proyecto}
+La memoria se organiza en ocho capítulos. El primero presenta el contexto, los objetivos y el alcance del proyecto. El segundo desarrolla los fundamentos teóricos y el estado del arte. El tercero describe la metodología, los requisitos y el diseño de la solución. El cuarto explica la implementación, mientras que los capítulos quinto y sexto recogen la evaluación y las pruebas realizadas. Finalmente, el séptimo analiza los resultados y las limitaciones, y el octavo presenta las conclusiones y las líneas de trabajo futuro.
+
+\clearpage
+\TFMSection{Alcance de la Solución}
+El proyecto comprende el desarrollo de una prueba de concepto capaz de procesar documentación turística, extraer y normalizar su contenido, indexarlo en una base de datos vectorial y recuperarlo mediante técnicas RAG. Sobre esta base, se implementa un sistema de agentes especializados para recopilar requisitos del viaje, consulta información sobre destinos y actividades, obtener datos de precios cuando sea necesario, generar una imagen de portada y generar una propuesta personalizada.
+La solución incluye una interfaz básica desarrollada en Streamlit, una API para la comunicación entre componentes y una infraestructura cloud basada en servicios de AWS para el almacenamiento, procesamiento, indexación y persistencia de la información
+
+Al tratarse de una prueba de concepto, quedan fuera del alcance la realización de reservas o pagos, la integración completa con sistema comerciales en producción, la garantía de disponibilidad en tiempo real y el tratamiento exhaustivo de todos los posibles proveedores y destino. Las propuestas generadas deben considerarse una primera versión sujeta a revisión por parte de un profesional.

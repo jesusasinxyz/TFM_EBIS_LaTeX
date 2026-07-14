@@ -1,0 +1,69 @@
+\clearpage
+\TFMChapter{Implementación}
+
+\TFMSection{Introducción}
+\TFMSection{Estructura del Código}
+Repositorios, módulos principales, organización del backend, frontend, agentes y funciones Lambda
+
+\TFMSection{Implementación del pipeline de procesamiento documental}
+Explicar las Lambdas y las transformaciones realizadas:
+\begin{tfmbullets}
+\item PDF a imágenes.
+\item Imágenes a Markdown.
+\item Limpieza y normalización.
+\item Extracción de metadatos.
+\item Chunking e indexación.
+\end{tfmbullets}
+
+\TFMSection{Implementación del sistema RAG}
+Explicar:
+\begin{tfmbullets}
+\item Construcción de consultas.
+\item Filtros por destino, tipo de actividad, precio o fechas.
+\item Recuperación desde OpenSearch.
+\item Reranking.
+\end{tfmbullets}
+
+\clearpage
+\begin{tfmbullets}
+\item Construcción del contexto.
+\item Generación de la respuesta.
+\end{tfmbullets}
+
+\TFMSection{Implementación del sistema multiagente}
+\subsection{Agente orquestador}
+\subsection{Agente de información}
+\subsection{Agente de precios}
+\subsection{Generación del itinerario}
+\subsection{Generación de la propuesta comercial}
+\subsection{Gestión del estado y transiciones}
+
+\TFMSection{Integración con modelos de lenguaje}
+Modelos utilizados, prompts, respuestas estructuradas, gestión de errores y control del contexto.
+
+\TFMSection{Integración con fuentes externas}
+APIs de hoteles y vuelos, MCP y estrategia de fallback cuando el RAG no contiene información suficiente.
+
+\TFMSection{Implementación de la API}
+Endpoints, autenticación, validaciones, comunicación con los agentes y persistencia.
+
+\TFMSection{Implementación del frontend}
+Pantallas, chat, formularios de viaje, visualización del itinerario y propuesta final.
+
+\clearpage
+\TFMSection{Despliegue e Infra en AWS}
+Explicar:
+\begin{tfmbullets}
+\item S3.
+\item Lambda.
+\item Step Functions.
+\item OpenSearch Serverless.
+\item DynamoDB.
+\item API Gateway, si se utiliza.
+\item IAM.
+\item Variables de entorno.
+\item Logs y despliegue.
+\end{tfmbullets}
+
+\TFMSection{Seguridad y gestión de errores}
+Permisos IAM, secretos, validación de entradas, reintentos, timeouts y tratamiento de fallos en servicios externos.

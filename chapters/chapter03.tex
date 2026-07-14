@@ -1,0 +1,72 @@
+\clearpage
+\TFMChapter{Metodología, Requisitos y Diseño de la Solución}
+
+\TFMSection{Introducción}
+\TFMSection{Plan de Trabajo y Metodología}
+\TFMSection{Análisis de problema y caso de uso}
+Por ejemplo:
+\begin{tfmbullets}
+\item Carga de documentación.
+\item Procesamiento automático.
+\item Inicio de una conversación.
+\item Recopilación de requisitos del viaje.
+\item Consulta de información turística.
+\item Consulta de precios.
+\item Elaboración del itinerario.
+\item Generación de la propuesta comercial.
+\end{tfmbullets}
+
+\TFMSection{Requisitos Funcionales}
+\TFMTOCPageBreak
+\TFMSection{Requisitos No Funcionales}
+
+\clearpage
+\TFMSection{Arquitectura de la Aplicación}
+Diagrama del flujo/funcionamiento. Presentar un diagrama completo con:
+\begin{tfmbullets}
+\item Frontend.
+\item API backend.
+\item Sistema multiagente.
+\item Modelos de lenguaje.
+\item RAG.
+\item OpenSearch Serverless.
+\item DynamoDB.
+\item S3.
+\item Lambdas.
+\item Step Functions.
+\item Servicios externos.
+\end{tfmbullets}
+
+\TFMSection{Diseño del sistema multiagente}
+Explicar cada agente:
+\begin{tfmbullets}
+\item Agente orquestador.
+\item Agente de información.
+\item Agente de precios.
+\item Agente de itinerario, si existe como agente independiente.
+\item Agente generador de la propuesta comercial.
+\end{tfmbullets}
+También las transiciones y el estado compartido.
+
+\TFMSection{Diseño del pipeline documental}
+Desde que se carga un PDF hasta que queda disponible para las búsquedas:
+\begin{enumerate}
+\item Carga en S3.
+\item Conversión de PDF a imágenes.
+\item Extracción a Markdown.
+\item Normalización.
+\item Extracción de metadatos.
+\item División en fragmentos.
+\item Generación de embeddings o indexación.
+\item Almacenamiento en OpenSearch.
+\item Consulta posterior desde el RAG.
+\end{enumerate}
+
+Diseño de datos
+
+\TFMSection{Diseño de datos}
+DynamoDB, estructura de documentos en S3, índices de OpenSearch, metadatos, conversaciones y estado de las propuestas.
+
+\TFMSection{Selección Tecnológica}
+Justificar AWS, OpenAI, LangGraph, OpenSearch Serverless, Lambda, Step Functions, DynamoDB, frontend y backend utilizados.
+Yo movería Selección tecnológica después de describir la arquitectura, porque así primero explicáis qué necesita el sistema y luego justificáis las tecnologías elegidas.

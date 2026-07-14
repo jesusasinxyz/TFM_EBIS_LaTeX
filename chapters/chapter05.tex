@@ -1,0 +1,72 @@
+\clearpage\thispagestyle{empty}\null\clearpage
+\TFMChapter{Evaluación y Experimentos Realizados}
+
+\begin{enumerate}
+\item Métricas (calidad de respuestas, latencia, coste, etc.)
+\item Resultados cuantitativos y cualitativos
+\item Análisis de errores y limitaciones
+\end{enumerate}
+
+\TFMSection{Introducción}
+\TFMSection{Metodología de evaluación}
+Definir conjunto de consultas, documentos utilizados, criterios de éxito y métricas.
+
+\TFMSection{Evaluación del procesamiento documental}
+Comprobar:
+\begin{tfmbullets}
+\item Calidad del Markdown generado.
+\item Conservación de tablas.
+\item Extracción de precios.
+\item Extracción de destinos.
+\item Extracción de actividades.
+\item Calidad de los metadatos.
+\end{tfmbullets}
+
+\TFMSection{Evaluación de la recuperación de información}
+Podéis medir:
+\begin{tfmbullets}
+\item Precisión de los fragmentos recuperados.
+\end{tfmbullets}
+\TFMTOCPageBreak
+
+\clearpage
+\begin{tfmbullets}
+\item Recall.
+\item Relevancia del top-k.
+\item Diferencia con y sin reranking.
+\item Comportamiento de filtros por destino o actividad.
+\end{tfmbullets}
+
+\TFMSection{Evaluación del sistema multiagente}
+Comprobar:
+\begin{tfmbullets}
+\item Recopilación correcta de parámetros.
+\item Selección del agente adecuado.
+\item Uso correcto del RAG o API externa.
+\item Transferencia de información entre agentes.
+\item Finalización correcta del flujo.
+\end{tfmbullets}
+
+\TFMSection{Evaluación de las propuestas generadas}
+Criterios como:
+\begin{tfmbullets}
+\item Coherencia del itinerario.
+\item Cumplimiento del presupuesto.
+\item Adaptación a fechas y preferencias.
+\item Uso de información recuperada.
+\item Claridad comercial.
+\item Ausencia de datos inventados.
+\end{tfmbullets}
+
+\TFMSection{Comparativa de configuraciones}
+Por ejemplo:
+\begin{tfmbullets}
+\item RAG frente a modelo sin RAG.
+\item Con reranking frente a sin reranking.
+\item Distintos tamaños de chunk.
+\item Diferentes modelos.
+\item Variaciones de prompts.
+\end{tfmbullets}
+
+\TFMSection{Resultados y análisis}
+
