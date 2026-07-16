@@ -559,6 +559,13 @@
   {}
   {\titlerule*[0.35em]{\_}\contentspage}
 
+\titlecontents{table}
+  [0pt]
+  {\fontsize{10}{18.25}\selectfont}
+  {\tablename\ \thecontentslabel: }
+  {}
+  {\dotfill\contentspage}
+
 \makeatletter
 
 \renewcommand\tableofcontents{%
@@ -568,6 +575,18 @@
   \begingroup
   \setlength{\parskip}{0pt}%
   \@starttoc{toc}%
+  \endgroup
+}
+
+% Índice de tablas: se genera automáticamente a partir de los \caption
+% de los entornos table del documento, no requiere mantenimiento manual.
+\renewcommand\listoftables{%
+  \thispagestyle{TFMFront}%
+  \TFMFrontHeading{Índice de tablas}%
+
+  \begingroup
+  \setlength{\parskip}{0pt}%
+  \@starttoc{lot}%
   \endgroup
 }
 
