@@ -43,7 +43,6 @@ El valor de este pipeline es concreto: convierte un tarifario o catálogo en PDF
 \item \textbf{Chunking e indexación.} El Markdown se divide en fragmentos de tamaño acotado, se genera una representación vectorial de cada fragmento y se indexa en la base de datos vectorial junto con los metadatos de destino y actividades, quedando así disponible para el sistema RAG.
 \end{tfmbullets}
 
-Cabe señalar, como observación técnica honesta, que la fase de prototipado (el script de desarrollo local) utiliza un modelo Gemini para el reconocimiento de las imágenes, mientras que la función Lambda finalmente desplegada en producción utiliza un modelo GPT-4o-mini de OpenAI para esa misma tarea. Es una divergencia entre la documentación inicial del proyecto y la implementación final que convendría unificar en una futura iteración, y que se recoge como línea de trabajo futuro en el Capítulo 8.
 
 \TFMSection{Implementación del sistema RAG}
 El sistema RAG es el componente que permite que las respuestas del sistema estén fundamentadas en la documentación real de los proveedores, en lugar de depender únicamente del conocimiento general del modelo de lenguaje, lo que reduce el riesgo de que la propuesta incluya información inventada o desactualizada.
