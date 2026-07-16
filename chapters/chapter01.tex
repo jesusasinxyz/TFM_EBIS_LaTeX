@@ -1,16 +1,16 @@
 \TFMChapter{Introducción}
 
-\TFMSection{Contexto y Motivación}
+\TFMSection{Planteamiento del Problema}
 La creación de propuestas de viaje personalizadas requiere consultar información de numerosas fuentes, como documentos de proveedores, catálogos de actividades, tarifas, alojamientos, vuelos y datos específicos de cada destino. En muchas agencias, esta información se encuentra distribuida en documentos PDF, correos electrónicos, repositorios internos, servicios de almacenamiento en la nube y plataformas externas, lo que dificulta su localización y reutilización.
 
-El personal interno de las agencias de viajes debe recopilar las preferencias del cliente, buscar actividades adecuadas, consultar precios y disponibilidad y organizar toda la información en una propuesta coherente. Este proceso implica una gran carga de trabajo manual.
+El personal interno de las agencias de viajes debe recopilar las preferencias del cliente, buscar actividades adecuadas, consultar precios y disponibilidad, y organizar toda la información en una propuesta coherente. Este proceso implica una gran carga de trabajo manual.
 
-Los sistemas de búsqueda tradicionales se basan principalmente en coincidencias exactas de palabras, por lo que pueden no recuperar información relevante cuando la consulta del usuario utiliza términos diferentes a los empleados. Además, los precios de vuelos y alojamientos son datos dinámicos que pueden no estar disponibles en documentación internar o quedar desactualizados.
+Los sistemas de búsqueda tradicionales se basan principalmente en coincidencias exactas de palabras, por lo que pueden no recuperar información relevante cuando la consulta del usuario utiliza términos diferentes a los empleados. Además, los precios de vuelos y alojamientos son datos dinámicos que pueden no estar disponibles en documentación interna o quedar desactualizados. El Capítulo 2 (Sección ``Recuperación aumentada por generación'') detalla las limitaciones de la búsqueda léxica frente a la búsqueda semántica.
 
-\clearpage
-En este contexto, las arquitecturas RAG, permiten combinar modelos de lenguaje con una base documental propia. Antes de generar una respuesta, el sistema recupera la información más relevante y la incorpora al contexto del modelo. De esta forma, es posible consultar la documentación de proveedores mediante lenguaje natural y generar respuestas fundamentadas en los datos disponibles.
+\TFMSection{Propuesta y Motivación}
+En este contexto, las arquitecturas RAG permiten combinar modelos de lenguaje con una base documental propia \parencite{lewis2020rag}. Antes de generar una respuesta, el sistema recupera la información más relevante y la incorpora al contexto del modelo. De esta forma, es posible consultar la documentación de proveedores mediante lenguaje natural y generar respuestas fundamentadas en los datos disponibles; los fundamentos de esta técnica se desarrollan en el Capítulo 2.
 
-El proyecto también plantea el uso de agentes de inteligencia artificial especializados, capaces de coordinar diferentes tareas, como recuperar información turística, consultar precios, organizar un itinerario, generar una imagen de portada asociada al destino y actividades propuestas y generar una propuesta comercial. Cuando la información interna no sea suficiente, el sistema podrá recurrir a servicios externos para completar los datos necesarios.
+El proyecto también plantea el uso de agentes de inteligencia artificial especializados, capaces de coordinar diferentes tareas, como recuperar información turística, consultar precios, organizar un itinerario, generar una imagen de portada asociada al destino y las actividades propuestas, y elaborar una propuesta comercial. Para garantizar la fiabilidad de las respuestas, los agentes se basarán prioritariamente en la información corporativa disponible y, cuando esta no sea suficiente, podrán consultar fuentes y servicios externos para completar los datos necesarios. El diseño de esta arquitectura multiagente se detalla en el Capítulo 3.
 
 A partir de esta necesidad, el presente Trabajo Fin de Máster propone el desarrollo de una prueba de concepto destinada a asistir a los profesionales de una agencia de viajes en la creación de propuestas personalizadas. La solución combina procesamiento documental, recuperación de información, modelos de lenguaje y una arquitectura basada en agentes.
 
@@ -43,7 +43,27 @@ Para poder cumplir con el objetivo principal, se han definido los siguientes obj
 Este conjunto de objetivos busca reducir el tiempo dedicado a tareas manuales de búsqueda, consulta y organización de información, proporcionando al profesional una herramienta de apoyo para generar propuestas de viaje personalizadas que puedan ser posteriormente revisadas y adaptadas.
 
 \TFMSection{Estructura del Proyecto}
-La memoria se organiza en ocho capítulos. El primero presenta el contexto, los objetivos y el alcance del proyecto. El segundo desarrolla los fundamentos teóricos y el estado del arte. El tercero describe la metodología, los requisitos y el diseño de la solución. El cuarto explica la implementación, mientras que los capítulos quinto y sexto recogen la evaluación y las pruebas realizadas. Finalmente, el séptimo analiza los resultados y las limitaciones, y el octavo presenta las conclusiones y las líneas de trabajo futuro.
+La memoria se organiza en ocho capítulos, cuyo contenido se resume en la Tabla \ref{tab:estructura}.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}p{4.5cm}p{9cm}@{}}
+\toprule
+\textbf{Capítulo} & \textbf{Contenido} \\
+\midrule
+1. Introducción & Contexto, motivación, objetivos y alcance del proyecto. \\
+2. Estado del Arte y Fundamentos Teóricos & Fundamentos teóricos (modelos de lenguaje, RAG, agentes) y revisión de soluciones existentes. \\
+3. Metodología, Requisitos y Diseño de la Solución & Metodología de trabajo, análisis de requisitos y diseño de la arquitectura. \\
+4. Implementación & Desarrollo técnico de los componentes del sistema. \\
+5. Evaluación y Experimentos Realizados & Evaluación de la solución mediante experimentos. \\
+6. Pruebas y Validación del Producto & Pruebas funcionales y validación del producto. \\
+7. Discusión & Análisis de los resultados obtenidos y de las limitaciones del proyecto. \\
+8. Conclusiones y Trabajo Futuro & Conclusiones y líneas de trabajo futuro. \\
+\bottomrule
+\end{tabular}
+\caption{Estructura de la memoria por capítulos.}
+\label{tab:estructura}
+\end{table}
 
 \clearpage
 \TFMSection{Alcance de la Solución}
