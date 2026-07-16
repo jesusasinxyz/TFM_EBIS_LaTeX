@@ -2,10 +2,13 @@
 \TFMFrontHeading{Resumen}
 \begingroup\setlength{\parskip}{0pt}
 El presente Trabajo Fin de Máster desarrolla una solución basada en inteligencia artificial generativa para apoyar al personal interno de agencias de viajes en la elaboración de propuestas comerciales personalizadas. El sistema permite aprovechar tanto la documentación propia de la agencia como información externa sobre vuelos, alojamientos y recursos turísticos, reduciendo el tiempo necesario para recopilar, organizar y presentar la información al cliente.
+\\
 
 La solución se basa en una arquitectura multiagente compuesta por un agente orquestador, encargado de recopilar los requisitos del viaje, y varios agentes especializados en la búsqueda de información, estimación de precios, generación de contenido, selección de imágenes y creación de la presentación final en formato PowerPoint.
+\\
 
 Para la recuperación de información se emplea una arquitectura RAG apoyada en Amazon OpenSearch Serverless y embeddings de Amazon Titan. La generación de contenido se realiza mediante modelos de OpenAI y Google Gemini. La infraestructura utiliza distintos servicios de AWS, entre ellos Amazon S3, Lambda, Step Functions, DynamoDB, API Gateway y EC2.
+\\
 
 Como resultado, se ha desarrollado un prototipo funcional capaz de coordinar diferentes agentes y generar propuestas de viaje estructuradas, visuales y adaptadas a las necesidades del cliente, demostrando el potencial de la inteligencia artificial generativa para mejorar la eficiencia de los procesos internos de una agencia de viajes.
 \endgroup
