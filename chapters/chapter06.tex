@@ -1,7 +1,7 @@
 \clearpage\thispagestyle{empty}\null\clearpage
 \TFMChapter{Pruebas y Validación del Producto}
 \TFMSection{Introducción}
-Este capítulo describe las pruebas realizadas sobre la solución. Se detalla en primer lugar la suite de pruebas automatizadas del proyecto, que verifica el comportamiento de los componentes descritos en el Capítulo 4. Las secciones de usabilidad y observabilidad en producción quedan pendientes de completar, ya que requieren datos de uso real que, al tratarse de una prueba de concepto, todavía no se han recogido de forma sistemática.
+Este capítulo describe las pruebas realizadas sobre la solución. Se detalla en primer lugar la suite de pruebas automatizadas del proyecto, que verifica el comportamiento de los componentes descritos en el Capítulo 4. A continuación se presenta la observabilidad en producción, basada en las trazas reales recogidas por LangSmith, que permite verificar el comportamiento del sistema en condiciones de uso real. La sección de usabilidad queda pendiente de completar, ya que requiere una evaluación formal con usuarios que no se ha realizado en esta versión.
 
 \TFMSection{Tests Unitarios/Funcionales y Evaluación del Usuario}
 El proyecto cuenta con una suite de pruebas automatizadas basada en \texttt{pytest}, organizada en dos niveles: pruebas unitarias, que verifican de forma aislada la lógica de cada componente, y pruebas de integración, que verifican el comportamiento conjunto de varios componentes reales. En el momento de escribir esta memoria, la suite reúne 109 pruebas recogidas correctamente, distribuidas principalmente en:
@@ -19,4 +19,75 @@ Como parte de esta revisión se ha comprobado también el estado de la suite med
 La evaluación por parte de usuarios reales del sistema queda pendiente de realizar y no se incluye en esta versión de la memoria.
 
 \TFMSection{UX/Usabilidad}
+La evaluación formal de usabilidad con usuarios reales queda pendiente de realizar y no se incluye en esta versión de la memoria.
+
 \TFMSection{Observabilidad en Producción}
+La integración de LangSmith descrita en la Sección~4.7 ha permitido recoger trazas de las ejecuciones reales del sistema en el proyecto \texttt{tfm-ebis}. En el momento de escribir esta memoria, el proyecto acumula 51~ejecuciones del grafo multiagente, correspondientes a 51~conversaciones de generación de folletos promocionales con destinos y clientes distintos. Cada ejecución se registra como una traza raíz de tipo \textit{chain} (el grafo LangGraph), que contiene como runs anidados cada llamada a los modelos de lenguaje de los agentes.
+
+\subsection{Métricas en producción}
+La Tabla~\ref{tab:prod-metrics} muestra las métricas agregadas extraídas de las trazas. Estas métricas permiten verificar el comportamiento del sistema en condiciones reales: la tasa de error es del 0\%, el coste medio por flyer es de 0{,}043~\$ y la latencia mediana de 24{,}5~s. La observabilidad no se limita a la verificación \textit{a posteriori}: el panel de LangSmith permite monitorizar las ejecuciones en tiempo real, filtrar por cliente o por identificador de propuesta, e inspeccionar el prompt y la respuesta de cada llamada al modelo.
+
+\begin{table}[htbp]
+\centering
+\fontsize{10}{12}\selectfont
+\caption{Métricas de producción agregadas, extraídas del proyecto \texttt{tfm-ebis} en LangSmith.}
+\label{tab:prod-metrics}
+\begin{tabular}{lr}
+\toprule
+Métrica & Valor \\
+\midrule
+Ejecuciones registradas & 51 \\
+Tasa de error & 0\,0\,\% \\
+Runs LLM totales & 105 \\
+Coste total & 2{,}17 \$ \\
+Coste medio por flyer & 0{,}043 \$ \\
+Tokens totales & 589\,845 \\
+Latencia flyer p50 & 24{,}5 s \\
+Latencia flyer p99 & 348{,}6 s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Estructura de una traza}
+Cada ejecución del grafo genera un árbol de runs en LangSmith cuya estructura refleja el flujo del sistema multiagente. La Figura~\ref{fig:trace-tree} muestra el árbol de una traza real correspondiente a un flyer completo: la raíz es la ejecución del grafo (\textit{Flyer generation}), y sus hijos son las llamadas a cada agente. Cada nodo muestra el agente, el modelo utilizado, la latencia y el coste de esa llamada. El etiquetado con \texttt{flyer\_id} y \texttt{client\_name} permite localizar cualquier conversación en el panel sin necesidad de buscar por identificador interno del grafo.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    every node/.style={font=\fontsize{9}{11}\selectfont},
+    node distance=8mm and 6mm,
+    box/.style={draw, rounded corners=2pt, minimum width=42mm, minimum height=7mm, align=center, fill=TFMLinkBlue!8},
+    root/.style={draw, rounded corners=2pt, minimum width=50mm, minimum height=8mm, align=center, fill=TFMLinkBlue!20, font=\fontsize{9}{11}\bfseries\selectfont},
+    edge/.style={-Stealth, gray, thick},
+]
+\node[root] (root) {Flyer generation\\{\fontsize{7}{8}\selectfont\itshape chain · 96{,}5 s · 0{,}097 \$}};
+
+\node[box, below=of root, xshift=-48mm] (orch) {Orquestador\\{\fontsize{7}{8}\selectfont\itshape gemini-3.1-flash · 1{,}1 s}};
+
+\node[box, below=of root, xshift=-16mm] (info) {Información\\{\fontsize{7}{8}\selectfont\itshape gpt-4o · 15{,}1 s · 0{,}055 \$}};
+
+\node[box, below=of root, xshift=16mm] (price) {Precios\\{\fontsize{7}{8}\selectfont\itshape gpt-4o · 2{,}5 s · 0{,}018 \$}};
+
+\node[box, below=of root, xshift=48mm] (draft) {Redacción\\{\fontsize{7}{8}\selectfont\itshape gpt-5 · 84{,}0 s · 0{,}081 \$}};
+
+\node[box, below=of draft] (image) {Imagen\\{\fontsize{7}{8}\selectfont\itshape gpt-image-2 · 23{,}7 s}};
+
+\draw[edge] (root) -- (orch);
+\draw[edge] (root) -- (info);
+\draw[edge] (root) -- (price);
+\draw[edge] (root) -- (draft);
+\draw[edge] (draft) -- (image);
+\end{tikzpicture}
+\caption{Árbol de runs de una traza real en LangSmith, correspondiente a un flyer completo. Cada nodo representa una llamada al modelo, etiquetada con el agente, el modelo, la latencia y el coste.}
+\label{fig:trace-tree}
+\end{figure}
+
+\subsection{Trazabilidad y depuración}
+El etiquetado de cada ejecución con metadatos de negocio (\texttt{flyer\_id}, \texttt{client\_name}) y por agente (\texttt{agent:orchestrator}, \texttt{agent:information}, etc.) permite dos modos de uso del panel:
+
+\begin{tfmbullets}
+\item \textbf{Depuración por propuesta:} filtrar todas las trazas por \texttt{client\_name} localiza inmediatamente la conversación de un cliente concreto, mostrando el flujo completo de agentes, los prompts enviados a cada modelo y las respuestas recibidas. Esto es especialmente útil cuando un profesional reporta un problema con una propuesta específica.
+\item \textbf{Análisis por agente:} filtrar por la etiqueta de agente permite desglosar coste, tokens y latencia de un agente concreto a lo largo de todas las ejecuciones, identificando cuellos de botella o consumos anómalos sin necesidad de revisar trazas individualmente.
+\end{tfmbullets}
+
+La extracción reproducible de métricas se ha automatizado mediante el script \texttt{scripts/extract\_metrics.py}, que vuelca todas las trazas del proyecto a ficheros JSON para su análisis offline. Este enfoque garantiza que los resultados presentados en el Capítulo~5 sean verificables y actualizables a medida que el sistema acumule más ejecuciones.

@@ -566,6 +566,13 @@
   {}
   {\dotfill\contentspage}
 
+\titlecontents{figure}
+  [0pt]
+  {\fontsize{10}{18.25}\selectfont}
+  {\figurename\ \thecontentslabel: }
+  {}
+  {\dotfill\contentspage}
+
 \makeatletter
 
 \renewcommand\tableofcontents{%
@@ -587,6 +594,18 @@
   \begingroup
   \setlength{\parskip}{0pt}%
   \@starttoc{lot}%
+  \endgroup
+}
+
+% Índice de figuras: se genera automáticamente a partir de los \caption
+% de los entornos figure del documento, no requiere mantenimiento manual.
+\renewcommand\listoffigures{%
+  \thispagestyle{TFMFront}%
+  \TFMFrontHeading{Índice de figuras}%
+
+  \begingroup
+  \setlength{\parskip}{0pt}%
+  \@starttoc{lof}%
   \endgroup
 }
 

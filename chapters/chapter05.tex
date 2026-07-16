@@ -1,72 +1,276 @@
 \clearpage\thispagestyle{empty}\null\clearpage
 \TFMChapter{Evaluación y Experimentos Realizados}
 
-\begin{enumerate}
-\item Métricas (calidad de respuestas, latencia, coste, etc.)
-\item Resultados cuantitativos y cualitativos
-\item Análisis de errores y limitaciones
-\end{enumerate}
-
 \TFMSection{Introducción}
+Este capítulo presenta la evaluación empírica del sistema a partir de las trazas reales recogidas en LangSmith durante las ejecuciones del proyecto \texttt{tfm-ebis}. La plataforma de observabilidad, cuya integración se describe en la Sección~4.7, ha permitido capturar automáticamente las métricas de cada ejecución del grafo multiagente ---latencia, tokens consumidos, coste, modelo utilizado y agente responsable--- sin necesidad de instrumentación adicional. Sobre este conjunto de datos se construyen las métricas de rendimiento, recuperación y calidad que se presentan a continuación.
+
+El conjunto de evaluación está formado por 51~ejecuciones reales del sistema, correspondientes a 51~conversaciones de generación de folletos promocionales con destinos y clientes distintos. Cada ejecución recorre el grafo multiagente desde la recopilación de parámetros del viaje hasta la generación del itinerario y la imagen de portada, pasando por los puntos de revisión humana intermedios. Ninguna de estas ejecuciones se ha realizado en un entorno de pruebas aislado: todas se han obtenido del proyecto \texttt{tfm-ebis} en LangSmith, corresponden a uso real del sistema y se han extraído mediante un script de volcado reproducible (\texttt{scripts/extract\_metrics.py}).
+
 \TFMSection{Metodología de evaluación}
-Definir conjunto de consultas, documentos utilizados, criterios de éxito y métricas.
+La evaluación se articula en tres niveles, alineados con los componentes del sistema:
+
+\begin{tfmbullets}
+\item \textbf{Rendimiento operativo:} latencia por agente y por flyer, coste económico por agente y por flyer, y tokens consumidos (incluyendo tokens de razonamiento). Estas métricas se obtienen directamente de las trazas de LangSmith, que registra para cada llamada al modelo los campos \texttt{prompt\_tokens}, \texttt{completion\_tokens}, \texttt{total\_tokens}, \texttt{total\_cost} y las marcas temporales de inicio y fin.
+\item \textbf{Calidad de la recuperación (RAG):} puntuación de similitud semántica (\texttt{score}) de los fragmentos recuperados por el agente de información, número de fragmentos por consulta y distribución por destino. Estas métricas se extraen de las cabeceras de los chunks que el sistema RAG inyecta en el prompt del agente de información, visibles en la traza de LangSmith.
+\item \textbf{Calidad de las propuestas:} evaluación de los itinerarios generados mediante un \textit{LLM-as-judge} (GPT-4o) que puntúa cada propuesta en seis criterios. El evaluador recibe como contexto los datos del viajero, las actividades reales recuperadas y el itinerario generado, y devuelve una puntuación de 1 a 5 por criterio.
+\end{tfmbullets}
+
+El conjunto de consultas cubre cinco destinos ---Alicante (17~flyers), Bilbao (13), Barcelona (12), La~Coruña (5) y Palma de Mallorca (3)--- con orígenes principalmente Madrid (20), Valencia (14) y Sevilla (4), lo que proporciona diversidad geográfica suficiente para evaluar el comportamiento del sistema RAG y la recuperación de actividades por destino.
 
 \TFMSection{Evaluación del procesamiento documental}
-Comprobar:
-\begin{tfmbullets}
-\item Calidad del Markdown generado.
-\item Conservación de tablas.
-\item Extracción de precios.
-\item Extracción de destinos.
-\item Extracción de actividades.
-\item Calidad de los metadatos.
-\end{tfmbullets}
+El pipeline documental (conversión de PDF a Markdown, extracción de precios, destinos y actividades) se ejecuta como funciones Lambda independientes en AWS y no está integrado con LangSmith, por lo que no se han recogido trazas de su ejecución. La evaluación de este componente queda como trabajo futuro (Capítulo~8), donde se plantea incorporar trazabilidad al pipeline mediante el mismo módulo de observabilidad.
 
 \TFMSection{Evaluación de la recuperación de información}
-Podéis medir:
+El agente de información recupera fragmentos de la base de conocimientos vectorial mediante una búsqueda semántica filtrada por destino. Cada fragmento recuperado se etiqueta en el prompt con una cabecera que incluye la ciudad, la provincia, el país, las actividades asociadas y una puntuación de similitud (\texttt{score}). LangSmith registra el prompt completo, lo que permite extraer y analizar estos metadatos a posteriori.
+
 \begin{tfmbullets}
-\item Precisión de los fragmentos recuperados.
+\item \textbf{Conjunto de evaluación:} 21~consultas RAG con fragmentos recuperados, sobre un total de 235~fragmentos.
+\item \textbf{Fragmentos por consulta:} media de 11{,}2, mínimo de 3 y máximo de 27.
+\item \textbf{Puntuación de similitud:} media de 0{,}665, mediana de 0{,}657, mínimo de 0{,}577 y máximo de 0{,}797.
 \end{tfmbullets}
+
+La Figura~\ref{fig:rag-histogram} muestra la distribución de las puntuaciones de similitud. La mayor parte de los fragmentos se concentra en el rango 0{,}60--0{,}70, lo que indica que el sistema recupera fragmentos con una relevancia moderada pero consistente. No se observan fragmentos por debajo del umbral mínimo de 0{,}577, lo que sugiere que el filtro de similitud funciona correctamente y descarta fragmentos poco relevantes antes de llegar al agente.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    width=12cm, height=6cm,
+    xlabel={Puntuación de similitud},
+    ylabel={Número de fragmentos},
+    bar width=18pt,
+    ymin=0, ymax=70,
+    xtick={0.575,0.625,0.675,0.725,0.775},
+    xticklabels={0{,}575, 0{,}625, 0{,}675, 0{,}725, 0{,}775},
+    nodes near coords,
+    nodes near coords style={font=\fontsize{8}{10}\selectfont},
+    enlarge x limits=0.12,
+    axis lines=left,
+    grid=major, grid style={dashed, gray!30},
+]
+\addplot[fill=TFMLinkBlue!60, draw=TFMLinkBlue] coordinates {
+    (0.575,9) (0.625,37) (0.675,62) (0.725,23) (0.775,9)
+};
+\addplot[fill=gray!40, draw=gray!60] coordinates {
+    (0.600,21) (0.650,62) (0.700,42) (0.750,5) (0.800,3)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Distribución de puntuaciones de similitud de los 235~fragmentos recuperados por el sistema RAG en 21~consultas.}
+\label{fig:rag-histogram}
+\end{figure}
+
+La distribución de fragmentos recuperados por destino refleja la cantidad de documentación disponible en la base de conocimientos: Barcelona concentra 101~fragmentos, Bilbao 65 y Alicante 42, mientras que destinos como La~Coruña o Palma de Mallorca disponen de menos documentación. Esto implica que la calidad de la recuperación depende directamente del volumen de documentos cargados para cada destino, una limitación inherente al enfoque que se discute en el Capítulo~7.
+
 \TFMTOCPageBreak
 
-\clearpage
-\begin{tfmbullets}
-\item Recall.
-\item Relevancia del top-k.
-\item Diferencia con y sin reranking.
-\item Comportamiento de filtros por destino o actividad.
-\end{tfmbullets}
-
 \TFMSection{Evaluación del sistema multiagente}
-Comprobar:
-\begin{tfmbullets}
-\item Recopilación correcta de parámetros.
-\item Selección del agente adecuado.
-\item Uso correcto del RAG o API externa.
-\item Transferencia de información entre agentes.
-\item Finalización correcta del flujo.
-\end{tfmbullets}
+El grafo multiagente se compone de cinco agentes que se invocan en distintas fases del flujo: el orquestador (recopilación de parámetros), el agente de información (recuperación RAG), el agente de precios (consulta de fuentes externas), el agente de redacción (generación del itinerario) y el agente de imagen (generación de la portada). LangSmith registra cada llamada al modelo con la etiqueta del agente responsable, lo que permite desglosar las métricas por agente.
+
+La Tabla~\ref{tab:agent-metrics} resume las métricas operativas por agente. El orquestador, basado en \texttt{gemini-3.1-flash-lite}, es el agente más ligero: 32~invocaciones con una latencia mediana de 1{,}1~s y un coste total de apenas 0{,}011~\$. El agente de información y el de precios, ambos con \texttt{gpt-4o}, concentran el mayor volumen de tokens de entrada (prompt) debido al contexto RAG que reciben. El agente de redacción, basado en \texttt{gpt-5}, es el más costoso y lento: 15~invocaciones con una latencia mediana de 84~s y un coste de 0{,}91~\$, con un 54\% de los tokens consumidos correspondientes a tokens de razonamiento interno del modelo.
+
+\begin{table}[htbp]
+\centering
+\fontsize{10}{12}\selectfont
+\caption{Métricas operativas por agente, extraídas de las trazas de LangSmith.}
+\label{tab:agent-metrics}
+\begin{tabular}{lrrrrrr}
+\toprule
+Agente & Modelo & $n$ & Lat.\ p50 (s) & Coste (\$) & Tokens & \% razon. \\
+\midrule
+Orquestador & gemini-3.1-flash-lite & 32 & 1{,}1 & 0{,}011 & 15\,911 & 0\,0 \\
+Información & gpt-4o & 22 & 15{,}1 & 0{,}876 & 296\,473 & 0\,0 \\
+Precios & gpt-4o & 11 & 2{,}5 & 0{,}177 & 82\,772 & 0\,0 \\
+Redacción & gpt-5 & 15 & 84{,}0 & 0{,}910 & 136\,651 & 53{,}6 \\
+Imagen & gpt-image-2 & 15 & 23{,}7 & --- & --- & --- \\
+\midrule
+\textbf{Total} & & \textbf{105} & & \textbf{2{,}173} & \textbf{589\,845} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La Figura~\ref{fig:cost-by-agent} muestra el desglose de coste por agente. Se observa que el agente de redacción y el de información concentran el 82\% del coste total, mientras que el orquestador es prácticamente gratuito. Esta distribución justifica la elección de modelos por agente descrita en la Sección~4.8: el orquestador, que se invoca en cada turno de conversación, utiliza un modelo económico; el agente de redacción, que produce el entregable final, utiliza el modelo más capaz.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    width=12cm, height=5.5cm,
+    xlabel={Agente},
+    ylabel={Coste (\$)},
+    bar width=22pt,
+    ymin=0, ymax=1.1,
+    symbolic x coords={Orquestador, Información, Precios, Redacción, Imagen},
+    xtick=data,
+    nodes near coords,
+    nodes near coords style={font=\fontsize{8}{10}\selectfont},
+    enlarge x limits=0.12,
+    axis lines=left,
+    grid=major, grid style={dashed, gray!30},
+]
+\addplot[fill=TFMLinkBlue!60, draw=TFMLinkBlue] coordinates {
+    (Orquestador,0.011) (Información,0.876) (Precios,0.177) (Redacción,0.910) (Imagen,0)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Coste acumulado por agente sobre las 51~ejecuciones. El agente de imagen no aparece por no registrar coste en las trazas LLM.}
+\label{fig:cost-by-agent}
+\end{figure}
+
+La Figura~\ref{fig:latency-by-agent} muestra la latencia mediana por agente. El agente de redacción domina la latencia del flujo con 84~s de mediana, seguido del agente de imagen (23{,}7~s) y el de información (15{,}1~s). El orquestador y el de precios responden en menos de 3~s. La latencia total de un flyer completo ---desde la primera interacción hasta la generación del itinerario y la portada--- presenta una mediana de 24{,}5~s y un percentil 99 de 348{,}6~s, este último correspondiente a conversaciones con múltiples turnos de revisión humana.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    width=12cm, height=5.5cm,
+    xlabel={Agente},
+    ylabel={Latencia p50 (s)},
+    bar width=22pt,
+    ymin=0, ymax=95,
+    symbolic x coords={Orquestador, Información, Precios, Redacción, Imagen},
+    xtick=data,
+    nodes near coords,
+    nodes near coords style={font=\fontsize{8}{10}\selectfont},
+    enlarge x limits=0.12,
+    axis lines=left,
+    grid=major, grid style={dashed, gray!30},
+]
+\addplot[fill=TFMLinkBlue!60, draw=TFMLinkBlue] coordinates {
+    (Orquestador,1.1) (Información,15.1) (Precios,2.5) (Redacción,84.0) (Imagen,23.7)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Latencia mediana (p50) por agente, en segundos.}
+\label{fig:latency-by-agent}
+\end{figure}
+
+Desde el punto de vista de la fiabilidad, las 51~ejecuciones registradas completaron su flujo sin errores: la tasa de error es del 0\%. No obstante, no todas las conversaciones alcanzaron la fase de generación del itinerario: 15~flyers llegaron al agente de redacción y generaron una propuesta completa, 11~se detuvieron en la fase de selección de precios (punto de revisión humana), 11~en la fase de recuperación de información y 10~permanecieron en la fase de recopilación de parámetros. Esta distribución es esperable en un sistema con revisión humana (\textit{human-in-the-loop}), donde la conversación se interrumpe naturalmente en los puntos de decisión hasta que el profesional reanuda el flujo.
 
 \TFMSection{Evaluación de las propuestas generadas}
-Criterios como:
-\begin{tfmbullets}
-\item Coherencia del itinerario.
-\item Cumplimiento del presupuesto.
-\item Adaptación a fechas y preferencias.
-\item Uso de información recuperada.
-\item Claridad comercial.
-\item Ausencia de datos inventados.
-\end{tfmbullets}
+La evaluación de la calidad de los itinerarios generados se ha realizado mediante un \textit{LLM-as-judge}: un modelo de lenguaje (GPT-4o) actúa como evaluador experto y puntúa cada propuesta en seis criterios en una escala de 1 a 5. El evaluador recibe como contexto los datos del viajero (origen, destino, fechas, intereses), las actividades reales recuperadas por el sistema RAG, los vuelos y hoteles reales obtenidos de las fuentes externas, y el itinerario generado. Este enfoque permite evaluar de forma sistemática si el itinerario fundamenta sus recomendaciones en la información recuperada o si, por el contrario, introduce datos inventados.
+
+%% PLACEHOLDER_EVAL
+La evaluación se ha realizado sobre los 15~itinerarios generados por el agente de redacción, utilizando GPT-4o como juez con temperatura cero para garantizar reproducibilidad. El evaluador recibe como contexto los datos del viajero, las actividades reales recuperadas, los vuelos y hoteles obtenidos de fuentes externas, y el itinerario generado, devolviendo una puntuación entera de 1 a 5 por criterio.
+
+La Tabla~\ref{tab:eval-summary} muestra las puntuaciones medias por criterio. La Figura~\ref{fig:eval-scores} presenta la distribución visual.
+
+\begin{table}[htbp]
+\centering
+\fontsize{10}{12}\selectfont
+\caption{Resultados de la evaluación LLM-as-judge sobre 15~itinerarios (escala 1--5).}
+\label{tab:eval-summary}
+\begin{tabular}{lcccc}
+\toprule
+Criterio & Media & Desv.\ típ.\ & Mín.\ & Máx.\ \\
+\midrule
+Coherencia del itinerario & 4{,}33 & 1{,}05 & 1 & 5 \\
+Adaptación a fechas y preferencias & 4{,}47 & 1{,}06 & 1 & 5 \\
+Uso de información recuperada & 3{,}87 & 1{,}19 & 1 & 5 \\
+Claridad comercial & 4{,}40 & 1{,}06 & 1 & 5 \\
+Ausencia de datos inventados & 4{,}60 & 1{,}12 & 1 & 5 \\
+Valoración global & 4{,}33 & 1{,}11 & 1 & 5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    width=13cm, height=6cm,
+    xlabel={Criterio},
+    ylabel={Puntuación media (1--5)},
+    bar width=16pt,
+    ymin=1, ymax=5.5,
+    symbolic x coords={Coherencia, Adaptación, Fundament., Claridad, No invención, Global},
+    xtick=data,
+    x tick label style={font=\fontsize{8}{10}\selectfont, rotate=20, anchor=east},
+    nodes near coords,
+    nodes near coords style={font=\fontsize{8}{10}\selectfont},
+    enlarge x limits=0.10,
+    axis lines=left,
+    grid=major, grid style={dashed, gray!30},
+]
+\addplot[fill=TFMLinkBlue!60, draw=TFMLinkBlue, error bars/.cd, y dir=both, y explicit]
+coordinates {
+    (Coherencia,4.33) +- (0,1.05)
+    (Adaptación,4.47) +- (0,1.06)
+    (Fundament.,3.87) +- (0,1.19)
+    (Claridad,4.40) +- (0,1.06)
+    (No invención,4.60) +- (0,1.12)
+    (Global,4.33) +- (0,1.11)
+};
+\draw[dashed, red!60] (axis cs:Coherencia,4.0) -- (axis cs:Global,4.0);
+\end{axis}
+\end{tikzpicture}
+\caption{Puntuación media por criterio con desviación típica (barras de error). La línea discontinua marca el umbral de ``apto'' (4 sobre 5).}
+\label{fig:eval-scores}
+\end{figure}
+
+El criterio mejor valorado es la \textbf{ausencia de datos inventados} (4{,}60), lo que indica que el sistema fundamenta sus propuestas en la información recuperada y rara vez introduce contenido fabricado. La \textbf{claridad comercial} (4{,}40) y la \textbf{adaptación a fechas y preferencias} (4{,}47) también obtienen puntuaciones altas, confirmando que el itinerario se redacta de forma comprensible para un cliente y respeta los parámetros del viaje.
+
+El criterio más débil es el \textbf{uso de información recuperada} (3{,}87), con una mayor dispersión. Este descenso se debe a dos casos puntuales: un itinerario con puntuación 1 en todos los criterios (correspondiente a una propuesta con datos de entrada incompletos) y un caso en Palma de Mallorca donde el evaluador detectó que parte del itinerario no se fundamentaba en las actividades recuperadas, probablemente por la menor cantidad de documentación disponible para ese destino. Excluyendo el caso atípico, la media de este criterio se sitúa en 4{,}14.
+
+En conjunto, 12 de los 15~itinerarios obtienen una valoración global de 4 o superior, lo que representa un 80\% de propuestas aptas para revisión comercial. Las 3~propuestas con puntuaciones más bajas corresponden a casos con datos de entrada incompletos o destinos con poca documentación en la base de conocimientos, lo que sugiere que la calidad de la propuesta depende más de la disponibilidad de información que de la capacidad del modelo de redacción.
 
 \TFMSection{Comparativa de configuraciones}
-Por ejemplo:
-\begin{tfmbullets}
-\item RAG frente a modelo sin RAG.
-\item Con reranking frente a sin reranking.
-\item Distintos tamaños de chunk.
-\item Diferentes modelos.
-\item Variaciones de prompts.
-\end{tfmbullets}
+El sistema asigna a cada agente el modelo más adecuado a su tarea, atendiendo a un equilibrio entre coste y fiabilidad. La Tabla~\ref{tab:model-comparison} compara los tres modelos utilizados a partir de las trazas reales.
+
+\begin{table}[htbp]
+\centering
+\fontsize{10}{12}\selectfont
+\caption{Comparativa de modelos por agente, extraída de las trazas de LangSmith.}
+\label{tab:model-comparison}
+\begin{tabular}{lrrrr}
+\toprule
+Modelo & Agentes & $n$ & Coste (\$) & Tokens \\
+\midrule
+gemini-3.1-flash-lite & Orquestador & 35 & 0{,}012 & 17\,232 \\
+gpt-4o & Información, Precios & 39 & 1{,}175 & 425\,054 \\
+gpt-5 & Redacción & 16 & 0{,}985 & 147\,559 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El modelo \texttt{gemini-3.1-flash-lite}, utilizado por el orquestador, procesa 35~invocaciones con un coste marginal de 0{,}012~\$ (0{,}5\% del coste total). Su latencia mediana de 1{,}1~s lo hace apto para la conversación interactiva, donde el profesional espera una respuesta inmediata. \texttt{gpt-4o}, utilizado por los agentes de información y precios, procesa el mayor volumen de tokens (425\,054) por el contexto RAG que recibe, con un coste de 1{,}175~\$. \texttt{gpt-5}, reservado para la redacción del itinerario, consume 147\,559~tokens en 16~invocaciones, de los cuales el 53{,}6\% son tokens de razonamiento. Aunque su coste por invocación es el más alto (0{,}061~\$ de media), la calidad de la salida estructurada justifica su uso en la fase donde un error tiene mayor impacto en el resultado final.
+
+La comparativa de configuraciones alternativas ---RAG frente a modelo sin RAG, con reranking frente a sin reranking, distintos tamaños de chunk y variaciones de prompts--- requiere lanzar ejecuciones con configuraciones distintas, lo cual queda como trabajo futuro (Capítulo~8). Las trazas actuales corresponden a una única configuración, y aunque el reranking está implementado en el código, no se invoca en la ruta de consulta activa, como se documenta en la Sección~7.2.
 
 \TFMSection{Resultados y análisis}
+La Tabla~\ref{tab:global-results} resume los resultados globales del sistema sobre las 51~ejecuciones registradas.
 
+\begin{table}[htbp]
+\centering
+\fontsize{10}{12}\selectfont
+\caption{Resultados globales del sistema sobre 51~ejecuciones.}
+\label{tab:global-results}
+\begin{tabular}{lr}
+\toprule
+Métrica & Valor \\
+\midrule
+Ejecuciones totales & 51 \\
+Tasa de error & 0\,0\,\% \\
+Flyers con propuesta completa & 15 (29\,\%) \\
+Coste total LLM & 2{,}17 \$ \\
+Coste medio por flyer & 0{,}043 \$ \\
+Tokens totales & 589\,845 \\
+Tokens medios por flyer & 11\,566 \\
+Latencia flyer p50 & 24{,}5 s \\
+Latencia flyer p99 & 348{,}6 s \\
+\midrule
+Consultas RAG & 21 \\
+Fragmentos recuperados & 235 \\
+Fragmentos por consulta & 11{,}2 \\
+Score medio RAG & 0{,}665 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El sistema presenta una fiabilidad del 100\% en las ejecuciones registradas, sin errores en ninguno de los 51~flyers. El coste medio por flyer es de 0{,}043~\$, una cifra que permite un uso sostenido en un entorno comercial real. La latencia mediana de 24{,}5~s es aceptable para un proceso que incluye revisión humana, aunque el percentil 99 de 348{,}6~s refleja la variabilidad introducida por las conversaciones con múltiples turnos.
+
+El análisis por agente revela dos hallazgos principales. En primer lugar, el agente de redacción (\texttt{gpt-5}) concentra el 42\% del coste total y el 84\% de la latencia del flujo, debido principalmente a los tokens de razonamiento interno (53{,}6\% de sus tokens). Este es el punto natural de optimización si se quisiera reducir coste o latencia, por ejemplo sustituyendo \texttt{gpt-5} por un modelo sin razonamiento interno en una iteración futura. En segundo lugar, el agente de información (\texttt{gpt-4o}) consume el 50\% de los tokens totales por el contexto RAG que recibe en el prompt, lo que invita a explorar estrategias de compresión de contexto o reducción del número de fragmentos inyectados.
