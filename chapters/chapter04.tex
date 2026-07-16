@@ -57,15 +57,18 @@ El agente de información y el agente de precios son los dos consumidores de est
 
 El sistema multiagente se implementa como un grafo de estados en LangGraph, cuyos nodos y flujos de control se resumen en la Figura \ref{fig:orquestrador}. A continuación se describe la función que cumple cada agente dentro del grafo y las decisiones de implementación adoptadas en cada caso.
 
+
+\subsection{Agente orquestador}
+Es el punto de entrada de cada conversación y el responsable de que el sistema entienda qué viaje se está solicitando antes de empezar a trabajar. Analiza cada mensaje del profesional y extrae de forma estructurada los datos necesarios (cliente, origen, destino, fechas e intereses), solicitando una aclaración cuando falta información en lugar de generar una propuesta con datos incompletos. Una decisión de diseño relevante para la experiencia de uso es que, si el profesional cambia de destino a mitad de la conversación, el agente descarta automáticamente la información y los precios ya recopilados para el destino anterior, evitando así que la propuesta final mezcle datos de dos viajes distintos; si en cambio solo cambian las fechas, conserva el contexto cultural ya recuperado y solo recalcula los precios.
+
 \begin{figure}[h!]
 \centering
-\includegraphics[width=\textwidth,height=0.78\textheight,keepaspectratio]{assets/diagrama_orquestrador.png}
+\includegraphics[width=\textwidth,height=0.88
+\textheight,keepaspectratio]{assets/diagrama_orquestrador.png}
 \caption{Diagrama del orquestador multiagente.}
 \label{fig:orquestrador}
 \end{figure}
 
-\subsection{Agente orquestador}
-Es el punto de entrada de cada conversación y el responsable de que el sistema entienda qué viaje se está solicitando antes de empezar a trabajar. Analiza cada mensaje del profesional y extrae de forma estructurada los datos necesarios (cliente, origen, destino, fechas e intereses), solicitando una aclaración cuando falta información en lugar de generar una propuesta con datos incompletos. Una decisión de diseño relevante para la experiencia de uso es que, si el profesional cambia de destino a mitad de la conversación, el agente descarta automáticamente la información y los precios ya recopilados para el destino anterior, evitando así que la propuesta final mezcle datos de dos viajes distintos; si en cambio solo cambian las fechas, conserva el contexto cultural ya recuperado y solo recalcula los precios.
 
 \subsection{Agente de información}
 Transforma la documentación turística indexada en un relato legible: recupera, para el destino y cada uno de los intereses expresados por el cliente, los fragmentos más relevantes de la base documental, descarta los que no superan un umbral mínimo de relevancia y sintetiza el resultado en un contexto cultural y un listado de actividades recomendadas. El valor de este agente es doble: evita que el profesional tenga que buscar manualmente en los documentos de los proveedores, y fundamenta la respuesta en contenido real en lugar de en conocimiento genérico del modelo.
