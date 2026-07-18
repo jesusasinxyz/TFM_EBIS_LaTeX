@@ -102,6 +102,17 @@ El orquestador multiagente y la interfaz de usuario se ejecutan dentro del mismo
 
 El pipeline de procesamiento documental se ejecuta de forma completamente independiente y asíncrona respecto al resto de la aplicación: un documento puede cargarse y quedar disponible para su consulta sin que el orquestador ni la interfaz intervengan en ningún momento de ese proceso.
 
+\TFMSection{Diseño del pipeline documental}
+El pipeline de procesamiento documental transforma un documento de proveedor, cargado en formato PDF, en fragmentos de información indexados y disponibles para su recuperación semántica. Su diseño se organiza en tres etapas encadenadas:
+
+\begin{enumerate}
+    \item \textbf{Conversión de PDF a imágenes.} El documento se descompone en una imagen por página para preservar su maquetación original, incluyendo tablas, columnas, logotipos y otros elementos visuales. Esta representación resulta especialmente adecuada para tarifarios y catálogos turísticos cuya información no puede interpretarse correctamente mediante una extracción de texto convencional.
+    \item \textbf{Extracción, normalización y enriquecimiento del contenido.} Cada imagen se procesa mediante un modelo con capacidad de visión para reconstruir el contenido del documento en formato Markdown, conservando su jerarquía de encabezados, tablas y datos relevantes. Sobre el contenido obtenido se realiza la normalización de la información y la extracción estructurada de metadatos, como el destino, el proveedor, las actividades, los precios y las condiciones. Cuando el documento contiene enlaces web, también puede incorporarse información complementaria procedente de dichas fuentes.
+    \item \textbf{Fragmentación e indexación.} El contenido normalizado se divide en fragmentos de tamaño acotado. Para cada fragmento se genera una representación vectorial y se almacena junto con sus metadatos, permitiendo su recuperación posterior mediante similitud semántica y filtros exactos relacionados con el destino o las actividades.
+\end{enumerate}
+
+Cada etapa recibe una entrada definida y genera un resultado reutilizable por la siguiente. Esta separación permite ejecutar el procesamiento de forma asíncrona, conservar los resultados intermedios y reprocesar una etapa concreta cuando sea necesario. El resultado final constituye la base documental utilizada por el sistema RAG, principalmente por el agente de información y, de forma complementaria, por el agente de precios.
+
 \TFMSection{Diseño del sistema multiagente}
 El núcleo de la solución es un sistema multiagente que coordina las distintas tareas necesarias para generar una propuesta de viaje: recopilar los requisitos, recuperar información, consultar precios, elaborar un itinerario, generar una imagen y componer la propuesta final. Cada tarea se ha modelado como un agente especializado, y la coordinación entre agentes se ha diseñado como un grafo de estados con un estado compartido entre todos los nodos, tal como se muestra en la Figura~\ref{fig:orquestrador}. Su implementación se detalla en el apartado \ref{sec:impl-multiagente}.
 
@@ -128,18 +139,6 @@ Un aspecto central del diseño es la incorporación de dos puntos de \emph{inter
 \end{enumerate}
 
 Este diseño responde directamente a la necesidad, identificada en el análisis del problema, de mantener al profesional como responsable último de las decisiones con impacto comercial, utilizando el sistema como generador de una propuesta inicial revisable y no como sustituto de su criterio.
-
-\TFMSection{Diseño del pipeline documental}
-El pipeline de procesamiento documental transforma un documento de proveedor, cargado en formato PDF, en fragmentos de información indexados y disponibles para su recuperación semántica. El diseño se organiza en tres etapas encadenadas:
-
-\begin{enumerate}
-\item \textbf{Conversión de PDF a imágenes.} El documento se descompone en una imagen por página, preservando su maquetación original (tablas, logotipos y estructura visual), dado que muchos documentos de proveedores turísticos no son texto plano sino tarifarios y catálogos con diseño gráfico.
-\item \textbf{Extracción a Markdown.} Cada imagen se procesa mediante un modelo con capacidad de visión para extraer su contenido en formato Markdown, preservando la jerarquía de encabezados, tablas y datos relevantes del negocio (precios, condiciones de grupo, disponibilidad, etc.). En esta etapa se incorpora también contenido adicional obtenido de posibles enlaces web presentes en el documento.
-\item \textbf{Normalización y extracción de metadatos.} A partir del Markdown generado, se extraen de forma estructurada los metadatos del documento (destino, proveedor, actividades, precios y condiciones), que se normalizan y se almacenan junto con el propio documento.
-\item \textbf{División en fragmentos e indexación.} El contenido en Markdown se divide en fragmentos de tamaño acotado, se genera una representación vectorial de cada fragmento y se almacena en la base de datos vectorial, enriquecida con los metadatos de destino y actividades asociados, de forma que pueda recuperarse posteriormente tanto por similitud semántica como por filtrado exacto de destino.
-\end{enumerate}
-
-Cada etapa se ha diseñado como una unidad de trabajo independiente que recibe el resultado de la etapa anterior y produce una salida bien definida para la siguiente, lo que permite ejecutar el pipeline de forma asíncrona y reprocesar una etapa concreta sin necesidad de repetir las anteriores. El resultado final de este proceso es la entrada directa del sistema RAG utilizado por el agente de información y, de forma complementaria, por el agente de precios.
 
 \TFMSection{Diseño de datos}
 El diseño de datos de la solución combina tres tipos de almacenamiento, cada uno adecuado al tipo de información que gestiona:
