@@ -173,11 +173,16 @@ El sistema multiagente se implementa como un grafo de estados en LangGraph, cuyo
 Es el punto de entrada de cada conversación y el responsable de que el sistema entienda qué viaje se está solicitando antes de empezar a trabajar. Analiza cada mensaje del profesional y extrae de forma estructurada los datos necesarios (cliente, origen, destino, fechas e intereses), solicitando una aclaración cuando falta información en lugar de generar una propuesta con datos incompletos. Una decisión de diseño relevante para la experiencia de uso es que, si el profesional cambia de destino a mitad de la conversación, el agente descarta automáticamente la información y los precios ya recopilados para el destino anterior, evitando así que la propuesta final mezcle datos de dos viajes distintos; si en cambio solo cambian las fechas, conserva el contexto cultural ya recuperado y solo recalcula los precios.
 
 \begin{figure}[h!]
-\centering
-\includegraphics[width=\textwidth,height=0.88
-\textheight,keepaspectratio]{assets/diagrama_orquestrador.png}
-\caption{Diagrama del orquestador multiagente.}
-\label{fig:orquestrador}
+    \centering
+    \makebox[\textwidth][c]{%
+        \includegraphics[
+            width=1.3\textwidth,
+            height=0.88\textheight,
+            keepaspectratio
+        ]{assets/diagrama_orquestrador.png}
+    }
+    \caption{Diagrama del orquestador multiagente.}
+    \label{fig:orquestrador}
 \end{figure}
 
 
@@ -229,10 +234,7 @@ tiempo total de respuesta y permitiendo combinar compañías aéreas diferentes 
 esta opción resulta más económica. Los resultados obtenidos incluyen información como
 los aeropuertos, los horarios, la duración, las escalas y el precio de cada trayecto.
 
-La búsqueda de alojamientos utiliza el destino, las fechas de entrada y salida y el número
-de viajeros. A partir de la respuesta externa, el sistema selecciona y normaliza campos
-como el nombre del alojamiento, la valoración, el precio y la información disponible
-sobre la estancia.
+La búsqueda de alojamientos utiliza el destino, las fechas de entrada y salida y el número de viajeros. A partir de la respuesta externa, el sistema selecciona y normaliza campos como el nombre del alojamiento, la valoración, el precio y la información disponible sobre la estancia.
 
 Los resultados de vuelos y hoteles se transforman en modelos internos comunes antes
 de ser utilizados por el agente de precios. De esta forma, el resto de la aplicación no
@@ -258,8 +260,64 @@ La API de persistencia expone los servicios necesarios para que la interfaz y el
 \TFMSection{Implementación del frontend}
 La interfaz se ha construido como una aplicación conversacional sencilla, con dos pantallas: una de conversación, donde el profesional describe el viaje, ve la respuesta del sistema en tiempo real y toma las dos decisiones clave del proceso (selección de precios y revisión final de la propuesta); y otra de histórico, donde puede consultar, descargar o retomar cualquier propuesta generada anteriormente. Este diseño permite que un empleado sin conocimientos técnicos utilice un sistema multiagente complejo sin necesidad de entender su funcionamiento interno, a través de una conversación y de dos puntos de decisión claramente señalados.
 
-\TFMSection{Despliegue e Infra en AWS}
-El pipeline documental se despliega como funciones independientes sobre AWS Lambda, cada una con sus dependencias empaquetadas en capas reutilizables, lo que mantiene cada función ligera y facilita su actualización individual. La API de persistencia se despliega también como contenedor Lambda, expuesta a través de una API Gateway. El orquestador multiagente y la interfaz, al ejecutarse en un mismo proceso de larga duración, se despliegan como un único contenedor en una instancia con Docker, en lugar de como función sin servidor. Toda la infraestructura utiliza en la actualidad servicios gestionados de almacenamiento, base de datos y búsqueda vectorial de AWS, configurados manualmente en el momento de escribir esta memoria; la ausencia de una definición de infraestructura como código es una limitación conocida del proyecto, recogida como trabajo futuro en el Capítulo 8.
+\TFMSection{Despliegue e Infraestructura en AWS}
+
+La solución se ha desplegado sobre una arquitectura híbrida en AWS, combinando
+servicios \textit{serverless} para el procesamiento documental y la persistencia con una
+instancia de ejecución permanente para la aplicación conversacional. La
+Figura~\ref{fig:aws-infrastructure} presenta una visión general de los componentes
+desplegados y de sus principales relaciones.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]
+    {assets/diagrama_infra_aws.png}
+    \caption{Arquitectura general de despliegue de la solución en AWS.}
+    \label{fig:aws-infrastructure}
+\end{figure}
+
+Amazon S3 actúa como repositorio documental principal. Los documentos originales, las
+imágenes generadas por página y los ficheros Markdown normalizados se almacenan en
+buckets separados, permitiendo conservar los resultados intermedios y desacoplar las
+etapas del procesamiento.
+
+La persistencia estructurada se implementa mediante Amazon DynamoDB. En esta base
+de datos se almacenan los usuarios de la aplicación, los metadatos extraídos de los
+documentos y el estado de las propuestas generadas. El acceso a esta información se
+centraliza a través de una API backend desarrollada con FastAPI.
+
+La base de conocimiento del sistema RAG se implementa sobre Amazon OpenSearch
+Serverless. Los fragmentos documentales, sus embeddings y los metadatos asociados se
+almacenan en una colección vectorial preparada para búsquedas por similitud y filtrado
+exacto. Amazon Bedrock se utiliza para generar los embeddings mediante Titan Text
+Embeddings y para el módulo opcional de reordenación semántica desarrollado durante
+el proyecto.
+
+La interfaz en Streamlit, el orquestador multiagente y la API backend se ejecutan en una
+instancia Amazon EC2. Los componentes se despliegan mediante Docker y Docker Compose,
+manteniendo separados sus procesos y dependencias. Este enfoque permite ejecutar
+servicios de larga duración, conservar el estado de las conversaciones mientras la
+aplicación permanece activa y actualizar cada componente mediante la reconstrucción de
+su contenedor.
+
+El sistema consulta además SearchAPI como servicio externo para obtener información
+actualizada sobre vuelos y alojamientos. Esta integración se realiza desde el agente de
+precios y queda separada de los servicios internos de AWS.
+
+El acceso a los recursos se controla mediante AWS Identity and Access Management
+(IAM). Se han definido usuarios, roles y políticas con permisos diferenciados para las
+tareas de administración, despliegue y ejecución. Las funciones Lambda y los servicios
+internos disponen únicamente de los permisos necesarios para acceder a los buckets,
+tablas, modelos y colecciones utilizados, siguiendo el principio de mínimo privilegio.
+Las credenciales de los usuarios de la aplicación se mantienen separadas de las
+identidades empleadas por los procesos automáticos.
+
+La infraestructura se ha configurado manualmente mediante la consola de AWS y
+variables de entorno específicas para cada componente. Esta aproximación ha permitido
+validar la arquitectura completa dentro del alcance de la prueba de concepto, aunque
+reduce su reproducibilidad y dificulta auditar los cambios realizados. Por ello, la
+definición de la infraestructura mediante herramientas de \textit{Infrastructure as Code}
+se plantea como una línea prioritaria de trabajo futuro.
 
 \TFMSection{Seguridad y gestión de errores}
 El sistema incorpora varios mecanismos para tolerar fallos sin interrumpir la experiencia del profesional: reintentos automáticos ante errores transitorios de los proveedores de modelos de lenguaje, y una degradación controlada cuando el sistema RAG o las fuentes externas de precios no están disponibles, de forma que el flujo continúa (por ejemplo, sin contexto documental o sin precios de una fuente) en lugar de interrumpirse por completo. Esta decisión es especialmente relevante en un sistema orientado a un caso de uso comercial, donde una propuesta incompleta pero disponible resulta más útil que un error que bloquee todo el proceso.
