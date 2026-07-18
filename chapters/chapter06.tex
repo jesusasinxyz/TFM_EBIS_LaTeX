@@ -22,10 +22,10 @@ La evaluación por parte de usuarios reales del sistema queda pendiente de reali
 La evaluación formal de usabilidad con usuarios reales queda pendiente de realizar y no se incluye en esta versión de la memoria.
 
 \TFMSection{Observabilidad en Producción}
-La integración de LangSmith descrita en la Sección~4.7 ha permitido recoger trazas de las ejecuciones reales del sistema en el proyecto \texttt{tfm-ebis}. En el momento de escribir esta memoria, el proyecto acumula 51~ejecuciones del grafo multiagente, correspondientes a 51~conversaciones de generación de folletos promocionales con destinos y clientes distintos. Cada ejecución se registra como una traza raíz de tipo \textit{chain} (el grafo LangGraph), que contiene como runs anidados cada llamada a los modelos de lenguaje de los agentes.
+La integración de LangSmith descrita en la Sección~4.7 ha permitido recoger trazas de las ejecuciones reales del sistema en el proyecto \texttt{tfm-ebis}. En el momento de escribir esta memoria, el proyecto acumula 51~trazas (turnos del grafo) correspondientes a 21~conversaciones de generación de folletos promocionales, de las que 14~completaron el flyer íntegro. Cada traza se registra como una run raíz de tipo \textit{chain} (el grafo LangGraph), que contiene como runs anidados cada llamada a los modelos de lenguaje de los agentes; una misma conversación encadena varias trazas (una por turno) debido a los puntos de revisión humana.
 
 \subsection{Métricas en producción}
-La Tabla~\ref{tab:prod-metrics} muestra las métricas agregadas extraídas de las trazas. Estas métricas permiten verificar el comportamiento del sistema en condiciones reales: la tasa de error es del 0\%, el coste medio por flyer es de 0{,}043~\$ y la latencia mediana de 24{,}5~s. La observabilidad no se limita a la verificación \textit{a posteriori}: el panel de LangSmith permite monitorizar las ejecuciones en tiempo real, filtrar por cliente o por identificador de propuesta, e inspeccionar el prompt y la respuesta de cada llamada al modelo.
+La Tabla~\ref{tab:prod-metrics} muestra las métricas agregadas extraídas de las trazas. Estas métricas permiten verificar el comportamiento del sistema en condiciones reales: la tasa de error es del 0\%, el coste medio por traza es de 0{,}043~\$ y la latencia mediana por traza de 24{,}5~s; el coste medio de un flyer completo (agregando por \texttt{thread\_id} todas las trazas de la conversación) asciende a 0{,}128~\$ con una latencia mediana de 166{,}1~s. La observabilidad no se limita a la verificación \textit{a posteriori}: el panel de LangSmith permite monitorizar las ejecuciones en tiempo real, filtrar por cliente o por identificador de propuesta, e inspeccionar el prompt y la respuesta de cada llamada al modelo.
 
 \begin{table}[htbp]
 \centering
@@ -36,14 +36,17 @@ La Tabla~\ref{tab:prod-metrics} muestra las métricas agregadas extraídas de la
 \toprule
 Métrica & Valor \\
 \midrule
-Ejecuciones registradas & 51 \\
+Trazas (turnos) registradas & 51 \\
+Conversaciones (threads) & 21 \\
+Flyers completados & 14 (67\,\%) \\
 Tasa de error & 0\,0\,\% \\
 Runs LLM totales & 105 \\
 Coste total & 2{,}17 \$ \\
-Coste medio por flyer & 0{,}043 \$ \\
+Coste medio por traza & 0{,}043 \$ \\
+Coste medio por flyer completo & 0{,}128 \$ \\
 Tokens totales & 589\,845 \\
-Latencia flyer p50 & 24{,}5 s \\
-Latencia flyer p99 & 348{,}6 s \\
+Latencia traza p50 & 24{,}5 s \\
+Latencia flyer completo p50 & 166{,}1 s \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -78,7 +81,7 @@ Cada ejecución del grafo genera un árbol de runs en LangSmith cuya estructura 
 \draw[edge] (root) -- (draft);
 \draw[edge] (draft) -- (image);
 \end{tikzpicture}
-\caption{Árbol de runs de una traza real en LangSmith, correspondiente a un flyer completo. Cada nodo representa una llamada al modelo, etiquetada con el agente, el modelo, la latencia y el coste.}
+\caption{Árbol de runs de una traza real en LangSmith, correspondiente al turno final de un flyer (redacción e imagen). El flyer completo encadena varios turnos previos (orquestación, información, precios) en trazas distintas de la misma conversación; ver Sección~\ref{sec:flyer-completo} para las métricas agregadas por flyer.}
 \label{fig:trace-tree}
 \end{figure}
 

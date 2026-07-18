@@ -1,13 +1,14 @@
 \clearpage\thispagestyle{empty}\null\clearpage
 \TFMChapter[even]{Discusión}
 \TFMSection{Lecciones Aprendidas durante Desarrollo de la Solución}
-El análisis de las 51~ejecuciones reales recogidas en LangSmith proporciona varias lecciones cuantificables sobre el comportamiento del sistema:
+El análisis de las 51~trazas reales (21~conversaciones, de las que 14~completaron el flyer) recogidas en LangSmith proporciona varias lecciones cuantificables sobre el comportamiento del sistema:
 
 \begin{tfmbullets}
+\item \textbf{Un flyer completo cuesta tres veces más que un turno aislado.} El coste medio por traza es de 0{,}043~\$, pero el coste medio de un flyer completo ---agregando por \texttt{thread\_id} todas las trazas de la conversación--- asciende a 0{,}128~\$, con una latencia mediana de 166~s frente a los 24{,}5~s de un turno. La causa es el carácter \textit{human-in-the-loop}: cada punto de revisión añade un turno (de media 3 por flyer, con un máximo de 7), y con él nuevas invocaciones del orquestador, el agente de información y el de precios. Esta distinción, invisible sin agregar por \texttt{thread\_id}, es la que debe utilizarse al estimar el coste de operación del sistema.
 \item \textbf{El razonamiento interno domina el coste del agente de redacción.} El agente de redacción (\texttt{gpt-5}) consume el 42\% del coste total del sistema, a pesar de representar solo el 14\% de las invocaciones. El 53{,}6\% de sus tokens son tokens de razonamiento interno del modelo, no tokens de salida visibles. Este hallazgo, invisible sin una plataforma de observabilidad como LangSmith, sugiere que la optimización del coste pasa por evaluar si un modelo sin razonamiento interno produce itinerarios de calidad comparable.
 \item \textbf{El contexto RAG concentra los tokens de entrada.} El agente de información (\texttt{gpt-4o}) consume el 50\% de los tokens totales del sistema, casi todos correspondientes al prompt (contexto RAG), no a la respuesta. Con una media de 11{,}2~fragmentos por consulta, comprimir o reducir el número de fragmentos inyectados tendría un impacto directo en el coste.
 \item \textbf{La elección de modelo por agente es acertada.} El orquestador, que se invoca en cada turno de conversación, utiliza \texttt{gemini-3.1-flash-lite} con un coste marginal de 0{,}012~\$ (0{,}5\% del total) y una latencia de 1{,}1~s. Si se hubiera utilizado \texttt{gpt-4o} para el orquestador, el coste de las 32~invocaciones habría sido aproximadamente diez veces mayor, sin un beneficio evidente para una tarea de extracción de parámetros.
-\item \textbf{La fiabilidad es alta pero la muestra es limitada.} Las 51~ejecuciones registradas no presentan errores, pero corresponden a un único despliegue y un periodo de uso acotado. La extrapolación de esta tasa de error a un entorno de producción con mayor volumen y diversidad de consultas no es estadísticamente válida.
+\item \textbf{La fiabilidad es alta pero la muestra es limitada.} Las 51~trazas registradas no presentan errores, pero corresponden a un único despliegue y un periodo de uso acotado. La extrapolación de esta tasa de error a un entorno de producción con mayor volumen y diversidad de consultas no es estadísticamente válida.
 \end{tfmbullets}
 
 \TFMSection{Riesgos, Ética y Mitigaciones}
