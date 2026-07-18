@@ -1,6 +1,6 @@
 \TFMAnnex{Business Case}
 
-Este anexo traduce la solución técnica descrita en la memoria a un lenguaje de negocio, con el objetivo de presentar su valor a una agencia de viajes como potencial cliente o patrocinador del proyecto. Las cifras del modelo de ahorro incluidas en este anexo son \textbf{ilustrativas}: sirven como plantilla de cálculo y deben sustituirse por datos reales de la agencia (tiempos, costes y volumen de propuestas) antes de utilizarse en una negociación comercial real.
+Este anexo traduce la solución técnica descrita en la memoria a un lenguaje de negocio, con el objetivo de presentar su valor a una agencia de viajes como potencial cliente o patrocinador del proyecto. Combina dos tipos de cifras: datos reales de coste, latencia y calidad medidos sobre el sistema en producción (Capítulo~5), y un modelo de ahorro laboral cuyos parámetros --tiempo manual, coste laboral y volumen de propuestas-- son \textbf{ilustrativos} por depender de cada agencia concreta, y deben sustituirse por datos reales antes de utilizarse en una negociación comercial.
 
 \TFMAnnexSection{Resumen Ejecutivo}
 La solución desarrollada automatiza la parte más repetitiva del trabajo comercial de una agencia de viajes --buscar información de proveedores, consultar precios y redactar una propuesta-- y entrega en minutos un primer borrador de propuesta de viaje personalizada, revisable por el propio comercial antes de enviarla al cliente. El sistema no sustituye al profesional: acelera la parte mecánica del proceso para que dedique su tiempo a la parte que sí genera valor diferencial, la relación con el cliente y el cierre de la venta.
@@ -19,8 +19,8 @@ En una agencia de viajes, la información necesaria para montar una propuesta --
 \TFMAnnexSection{Una Fuente Única de Verdad}
 Uno de los efectos colaterales más relevantes del proyecto, más allá de la generación de la propuesta en sí, es que obliga a consolidar toda la documentación de proveedores en un único repositorio indexado y consultable. Esto elimina el problema habitual de varias versiones del mismo tarifario circulando por distintos correos y carpetas, y hace que cualquier miembro del equipo --no solo quien recibió originalmente el documento-- pueda acceder a la misma información actualizada. Además, al fundamentar cada respuesta en fragmentos concretos de la documentación (Capítulo 4), el sistema conserva la trazabilidad de qué fuente respalda cada dato de la propuesta, algo que un proceso manual basado en la memoria de cada empleado no puede garantizar.
 
-\TFMAnnexSection{Modelo de Ahorro de Tiempo y ROI (cifras ilustrativas)}
-La Tabla \ref{tab:roi-supuestos} recoge un modelo paramétrico sencillo para estimar el ahorro económico mensual. Los valores de la columna derecha son un ejemplo ilustrativo y deben sustituirse por los datos reales de la agencia.
+\TFMAnnexSection{Modelo de Ahorro de Tiempo y ROI}
+La Tabla \ref{tab:roi-supuestos} recoge un modelo paramétrico sencillo para estimar el ahorro económico mensual. Los cuatro parámetros de la tabla dependen de cada agencia (tiempo manual, coste laboral y volumen de propuestas) y siguen siendo un ejemplo ilustrativo que debe sustituirse por datos reales de la agencia; el resto de esta sección, en cambio, incorpora datos reales de coste y latencia medidos sobre el sistema en producción (Capítulo~5).
 
 \begin{table}[h!]
 \centering
@@ -49,15 +49,23 @@ A partir de estos supuestos, el ahorro de tiempo y el ahorro económico mensual 
 
 Con los valores ilustrativos de la Tabla \ref{tab:roi-supuestos}, esto supondría liberar 75 horas comerciales al mes (25 propuestas × 3 horas ahorradas), equivalentes a unos 1.875 €/mes (22.500 €/año) en tiempo comercial recuperado para tareas de mayor valor, como la atención al cliente o el cierre de ventas, en lugar de la búsqueda y redacción manual. Como se detalla en la estructura de costes (más abajo), al no exigir inversión inicial este ahorro se traduce en un retorno prácticamente inmediato desde el primer mes de uso.
 
+A diferencia de $T_{\text{manual}}$, $C_{\text{hora}}$ y $N$ --que dependen de cada agencia y siguen siendo ilustrativos--, el tiempo que tarda el propio sistema en generar un borrador ya no es una estimación: sobre las 14~conversaciones reales que completaron un flyer (Capítulo~5), la latencia mediana es de 166~s (2,8~minutos), con un percentil~99 de 22~minutos. Esto indica que la hora asumida en $T_{\text{asistida}}$ corresponde casi por completo al tiempo de revisión humana, no a una espera del sistema.
+
+El modelo anterior tampoco descuenta el coste de operar el sistema. Sobre las mismas 14~conversaciones, el coste medio real de generar un flyer completo es de 0,128~\$ (Capítulo~5; coste facturado en dólares por los proveedores de modelos de lenguaje, frente al ahorro laboral expresado en euros), lo que permite calcular un ahorro neto:
+\[
+\text{Ahorro económico neto (€/mes)} = \text{Ahorro económico bruto} - N \times \text{Coste medio por flyer}
+\]
+Con $N=25$, el coste operativo mensual asciende a apenas 3,2~\$ (25 × 0,128~\$), frente a un ahorro bruto de 1.875~€/mes: incluso asumiendo paridad aproximada entre ambas divisas para esta estimación, y con un volumen de propuestas conservador, el coste de ejecutar el sistema resulta prácticamente despreciable frente al ahorro laboral.
+
 \TFMAnnexSection{Métricas Clave para el Posicionamiento Comercial}
 Para presentar el sistema a un cliente o patrocinador, y para su seguimiento posterior una vez en uso, se proponen las siguientes métricas:
 
 \begin{tfmbullets}
-\item \textbf{Tiempo medio hasta la primera propuesta} (\textit{time-to-first-draft}): minutos desde que se inicia la conversación hasta disponer de un borrador revisable.
+\item \textbf{Tiempo medio hasta la primera propuesta} (\textit{time-to-first-draft}): medido en producción sobre 14~flyers completos, 166~s de mediana (2,8~minutos), con un percentil~99 de 22~minutos (Capítulo~5).
 \item \textbf{Horas comerciales liberadas al mes}, calculadas con el modelo de la sección anterior a partir de datos reales de uso.
-\item \textbf{Coste medio por propuesta generada}, incluyendo el coste de los servicios cloud y de los modelos de lenguaje utilizados.
+\item \textbf{Coste medio por propuesta generada}: medido en producción, 0,128~\$ por flyer completo, incluyendo el coste de los servicios cloud y de los modelos de lenguaje utilizados (Capítulo~5).
 \item \textbf{Tasa de aprobación directa}: porcentaje de propuestas aprobadas sin necesidad de corrección en el punto de revisión humana, frente a las que requieren ajustes.
-\item \textbf{Grado de fundamentación documental}: porcentaje de afirmaciones de la propuesta trazables a un fragmento concreto de la documentación de proveedores, como indicador de calidad y de riesgo de alucinación.
+\item \textbf{Grado de fundamentación documental}: porcentaje de afirmaciones de la propuesta trazables a un fragmento concreto de la documentación de proveedores, como indicador de calidad y de riesgo de alucinación. Como proxy inicial, la evaluación LLM-as-judge realizada sobre 15~itinerarios puntúa la ausencia de datos inventados en 4,60/5 (Capítulo~5).
 \item \textbf{Cobertura documental}: número de destinos y proveedores con documentación indexada y disponible para consulta.
 \item \textbf{Tiempo de respuesta al cliente final}, como métrica indirecta de negocio a la que contribuye el sistema, aunque no la controle de forma directa (una propuesta más rápida mejora la probabilidad de cierre frente a la competencia).
 \end{tfmbullets}
