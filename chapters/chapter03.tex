@@ -152,7 +152,7 @@ El diseño de datos de la solución combina tres tipos de almacenamiento, cada u
 
 Esta separación permite que cada tipo de dato se gestione con el modelo de acceso más adecuado: acceso por clave simple para los metadatos y el estado de las propuestas, almacenamiento de objetos de gran tamaño para los documentos y las imágenes, y búsqueda por similitud para el contenido indexado. Al tratarse de una prueba de concepto con patrones de acceso simples (consulta por identificador, sin necesidad de relaciones complejas entre entidades), se ha priorizado un modelo de datos sencillo y de bajo mantenimiento operativo frente a un esquema relacional.
 
-\TFMSection{Selección Tecnológica}
+\TFMSection{Selección Tecnológica e Infraestructura}
 La selección tecnológica se ha realizado una vez definida la arquitectura anterior, de forma que las tecnologías elegidas respondan a las necesidades identificadas en cada componente y no al contrario.
 
 \textbf{LangGraph} se ha elegido para la coordinación del sistema multiagente frente a otras alternativas de orquestación de agentes por ofrecer, de forma nativa, las dos primitivas que exige el diseño: la ejecución en paralelo de nodos independientes mediante aristas de sincronización (\textit{fan-out}/\textit{fan-in}), necesaria para ejecutar en paralelo el agente de información y el de precios, y el mecanismo de interrupción (\texttt{interrupt\_before}) que permite detener el grafo en un punto concreto para incorporar una decisión humana y reanudarlo después conservando el estado. Implementar esta misma lógica sobre una cadena secuencial simple habría requerido gestionar manualmente la sincronización y la persistencia del estado en cada punto de parada.
