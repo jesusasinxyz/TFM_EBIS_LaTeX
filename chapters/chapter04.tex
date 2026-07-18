@@ -185,7 +185,7 @@ Es el punto de entrada de cada conversación y el responsable de que el sistema 
 Transforma la documentación turística indexada en un relato legible: recupera, para el destino y cada uno de los intereses expresados por el cliente, los fragmentos más relevantes de la base documental, descarta los que no superan un umbral mínimo de relevancia y sintetiza el resultado en un contexto cultural y un listado de actividades recomendadas. El valor de este agente es doble: evita que el profesional tenga que buscar manualmente en los documentos de los proveedores, y fundamenta la respuesta en contenido real en lugar de en conocimiento genérico del modelo.
 
 \subsection{Agente de precios}
-Combina dos fuentes de información para presentar opciones de vuelo y alojamiento: un servicio externo que consulta precios de mercado en tiempo real, y la propia base documental, para alojamientos concretos que solo aparecen en los catálogos de los proveedores. La selección de candidatos (los vuelos más económicos y los alojamientos mejor valorados) se calcula de forma determinista en código, no mediante el modelo de lenguaje, lo que garantiza que el orden de las opciones presentadas sea siempre coherente y verificable. El resultado no se aplica automáticamente: se presentan varias opciones de cada categoría para que el profesional elija, manteniendo la decisión comercial en manos humanas.
+Combina dos fuentes de información para presentar opciones de vuelo y alojamiento: un servicio externo que consulta precios de mercado en tiempo real, y la propia base documental, para alojamientos concretos que solo aparecen en los catálogos de los proveedores. La selección de candidatos (los vuelos más económicos y los alojamientos mejor valorados) se calcula de forma determinista en código, no mediante el modelo de lenguaje, lo que garantiza que el orden de las opciones presentadas sea siempre coherente y verificable. El resultado no se aplica automáticamente: se presentan varias opciones de cada categoría para que el profesional elija (Figura~\ref{fig:frontend-seleccion-precios}), manteniendo la decisión comercial en manos humanas.
 
 \subsection{Generación del itinerario}
 A partir de la información turística recuperada, los precios seleccionados y las preferencias expresadas durante la conversación, se genera un itinerario día a día. Varios cálculos que podrían delegarse en el modelo de lenguaje se resuelven deliberadamente en código para garantizar su exactitud: la duración del viaje se calcula a partir de las fechas, y los horarios de los vuelos de llegada y salida se derivan de los precios seleccionados y se incorporan como instrucción al itinerario, en lugar de dejar que el modelo interprete horas de vuelo en formato libre. El itinerario también respeta un límite de extensión calculado a partir del espacio real disponible en la plantilla de la propuesta, de forma que el texto generado encaje siempre en el documento final sin necesidad de retoque manual.
@@ -194,7 +194,7 @@ A partir de la información turística recuperada, los precios seleccionados y l
 La propuesta final combina dos elementos generados de forma independiente: una imagen de portada asociada al destino y a las actividades seleccionadas, generada mediante un modelo de generación de imágenes \parencite{openai-images-2025}, y el propio itinerario. Ambos se integran en una plantilla corporativa en formato PPTX ya existente, editable por el profesional, sustituyendo los textos e imágenes de la plantilla por el contenido generado y ajustando dinámicamente el número de diapositivas del itinerario según la duración del viaje. El valor de este agente es que entrega un documento comercial ya maquetado y listo para revisar o enviar, sin requerir intervención de diseño.
 
 \subsection{Gestión del estado y transiciones}
-Todos los agentes anteriores comparten un mismo estado, que conserva los parámetros del viaje, la información recuperada, los precios, el itinerario y el resultado de cada etapa. Este estado se conserva de forma persistente cada vez que el flujo se detiene para una decisión humana, lo que permite que un profesional pueda interrumpir la elaboración de una propuesta y retomarla más adelante, incluso desde otra sesión, sin perder el trabajo ya realizado por el sistema.
+Todos los agentes anteriores comparten un mismo estado, que conserva los parámetros del viaje, la información recuperada, los precios, el itinerario y el resultado de cada etapa. Este estado se conserva de forma persistente cada vez que el flujo se detiene para una decisión humana, lo que permite que un profesional pueda interrumpir la elaboración de una propuesta y retomarla más adelante, incluso desde otra sesión, sin perder el trabajo ya realizado por el sistema. Las cuatro acciones disponibles en la pantalla de revisión final (Figura~\ref{fig:frontend-revision-flyer}) --aprobar, rechazar, descartar o guardar como borrador-- se corresponden directamente con los valores que puede tomar el estado de revisión de la propuesta.
 
 Cabe señalar, como observación técnica honesta, que el mecanismo de \textit{checkpointing} en memoria (\texttt{MemorySaver}) utilizado actualmente no conserva la posición exacta del \texttt{interrupt} del grafo cuando el proceso se reinicia: al recrearse el grafo, \texttt{current\_state.next} ya no permite distinguir en qué punto de revisión humana se encontraba una propuesta restaurada. Como mitigación, la interfaz incorpora una heurística (\texttt{\_at\_human\_review}, \texttt{\_at\_pricing\_selection}) que infiere el punto de interrupción a partir del propio contenido del estado persistido (por ejemplo, presencia de opciones de precio candidatas sin selección final, o de un borrador de propuesta ya redactado) cuando la posición del \texttt{interrupt} no está disponible. Esta heurística resuelve el caso práctico de continuar una propuesta tras un reinicio del contenedor, pero no sustituye a una solución de fondo: la persistencia externa del estado conversacional interrumpido se mantiene como línea de trabajo futuro prioritaria (Capítulo 8).
 
@@ -257,6 +257,65 @@ La API de persistencia expone los servicios necesarios para que la interfaz y el
 
 \TFMSection{Implementación del frontend}
 La interfaz se ha construido como una aplicación conversacional sencilla, con dos pantallas: una de conversación, donde el profesional describe el viaje, ve la respuesta del sistema en tiempo real y toma las dos decisiones clave del proceso (selección de precios y revisión final de la propuesta); y otra de histórico, donde puede consultar, descargar o retomar cualquier propuesta generada anteriormente. Este diseño permite que un empleado sin conocimientos técnicos utilice un sistema multiagente complejo sin necesidad de entender su funcionamiento interno, a través de una conversación y de dos puntos de decisión claramente señalados.
+
+El acceso a ambas pantallas queda protegido por la autenticación descrita en la sección anterior. La Figura~\ref{fig:frontend-login} muestra la pantalla de inicio de sesión, previa a cualquier otra funcionalidad.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{assets/frontend_login.png}
+\caption{Pantalla de inicio de sesión del frontend.}
+\label{fig:frontend-login}
+\end{figure}
+
+Tras autenticarse, el profesional llega por defecto a la pantalla de conversación (Figura~\ref{fig:frontend-orchestrator-vacio}), donde un único campo de texto invita a describir el viaje en lenguaje natural. La Figura~\ref{fig:frontend-orchestrator-prompt} muestra un ejemplo real de petición introducida por el usuario, que el agente orquestador (Sección~4.5) interpreta para extraer cliente, origen, destino, fechas e intereses antes de activar al resto de agentes.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{assets/frontend_orchestrator_vacio.png}
+\caption{Pantalla de conversación (Orchestrator) al iniciar una sesión.}
+\label{fig:frontend-orchestrator-vacio}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{assets/frontend_orchestrator_prompt.png}
+\caption{Ejemplo de petición de un nuevo viaje introducida en lenguaje natural.}
+\label{fig:frontend-orchestrator-prompt}
+\end{figure}
+
+Una vez generada, cada propuesta queda disponible en la pantalla de histórico (Figura~\ref{fig:frontend-dashboard}), que resume en formato tabular el cliente, el origen, el destino, las fechas, los intereses y el estado de cada propuesta creada por el equipo. Al seleccionar una propuesta de la lista, la interfaz despliega su contenido completo --itinerario día a día y desglose de precio-- (Figura~\ref{fig:frontend-dashboard-detalle}), desde donde el profesional puede descargarla en formato PPTX o enviarla de nuevo al sistema para iterar sobre ella.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{assets/frontend_dashboard.png}
+\caption{Pantalla de histórico (Dashboard) con las propuestas generadas por el equipo.}
+\label{fig:frontend-dashboard}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{assets/frontend_dashboard_detalle.png}
+\caption{Detalle de una propuesta: itinerario día a día y desglose de precio.}
+\label{fig:frontend-dashboard-detalle}
+\end{figure}
+
+Además de estas dos pantallas, el flujo se detiene en los dos puntos de interacción humana en el bucle descritos en la Sección~3.7. El primero ocurre tras la consulta de precios (Figura~\ref{fig:frontend-seleccion-precios}): la interfaz presenta las opciones de vuelo de ida y de vuelta, y de alojamiento, junto con su origen (documentación interna o SearchAPI), puntuación y puntos de interés cercanos al hotel, para que el profesional seleccione manualmente una opción de cada categoría antes de continuar; un checkbox adicional permite indicar que el cliente se desplazará por sus propios medios, omitiendo así la reserva de vuelo.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{assets/frontend_seleccion_precios.png}
+\caption{Selección manual de vuelos y hotel (primer punto de revisión humana).}
+\label{fig:frontend-seleccion-precios}
+\end{figure}
+
+El segundo punto de revisión ocurre tras generar la propuesta comercial completa (Figura~\ref{fig:frontend-revision-flyer}): la interfaz muestra el itinerario y el precio final ya integrados, y ofrece cuatro acciones explícitas --aprobar y publicar, rechazar indicando comentarios de corrección en un campo de texto libre, descartar o guardar como borrador-- que se corresponden directamente con los estados de revisión almacenados en el estado compartido del grafo (Sección~\ref{sec:impl-multiagente}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{assets/frontend_revision_flyer.png}
+\caption{Revisión final de la propuesta comercial (segundo punto de revisión humana).}
+\label{fig:frontend-revision-flyer}
+\end{figure}
 
 \TFMSection{Despliegue e Infra en AWS}
 El pipeline documental se despliega como funciones independientes sobre AWS Lambda, cada una con sus dependencias empaquetadas en capas reutilizables, lo que mantiene cada función ligera y facilita su actualización individual. La API de persistencia se despliega también como contenedor Lambda, expuesta a través de una API Gateway. El orquestador multiagente y la interfaz, al ejecutarse en un mismo proceso de larga duración, se despliegan como un único contenedor en una instancia con Docker, en lugar de como función sin servidor. Toda la infraestructura utiliza en la actualidad servicios gestionados de almacenamiento, base de datos y búsqueda vectorial de AWS, configurados manualmente en el momento de escribir esta memoria; la ausencia de una definición de infraestructura como código es una limitación conocida del proyecto, recogida como trabajo futuro en el Capítulo 8.

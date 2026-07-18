@@ -92,11 +92,46 @@ La solución se ha diseñado como un conjunto de componentes independientes que 
 \item \textbf{Pipeline de procesamiento documental:} conjunto de funciones \textbf{AWS Lambda} encadenadas que transforman un documento de proveedor en información consultable por el sistema RAG.
 \end{tfmbullets}
 
-% TODO: insertar aquí un diagrama de la arquitectura completa (figura),
-% mostrando: interfaz -> orquestador multiagente -> API backend -> DynamoDB;
-% orquestador -> RAG -> OpenSearch Serverless; orquestador -> modelos de lenguaje
-% y servicios externos de precios; y, en paralelo, el pipeline documental
-% S3 -> Lambdas -> OpenSearch Serverless.
+La Figura~\ref{fig:arquitectura} resume la arquitectura resultante y las dependencias entre componentes.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners, minimum width=2.7cm, minimum height=1cm, align=center, font=\fontsize{9}{10}\selectfont},
+  hub/.style={box, draw=TFMLinkBlue, thick, fill=TFMLinkBlue!8},
+  arr/.style={-Stealth, thick},
+  lbl/.style={font=\fontsize{7}{8}\selectfont, midway},
+  node distance=9mm and 9mm
+]
+
+\node[box] (front) {Interfaz\\(Streamlit)};
+\node[hub, right=of front] (orch) {Orquestador\\multiagente\\(LangGraph)};
+\node[box, right=of orch] (api) {API Backend\\(FastAPI)};
+\node[box, right=of api] (ddb) {DynamoDB};
+
+\draw[arr] (front) -- (orch);
+\draw[arr] (orch) -- (api);
+\draw[arr] (api) -- (ddb);
+\draw[arr] (front.north) to[out=90, in=90] node[lbl, above] {histórico / autenticación} (api.north);
+
+\node[box, below=of front] (llm) {Modelos de\\Lenguaje};
+\node[box, below=of orch] (rag) {OpenSearch\\Serverless (RAG)};
+\node[box, below=of api] (price) {Precios externos\\(SearchAPI)};
+
+\draw[arr] (orch) -- (llm);
+\draw[arr] (orch) -- (rag);
+\draw[arr] (orch) -- (price);
+
+\node[box, below=16mm of llm] (s3) {S3\\(documentos)};
+\node[box, right=of s3] (lambdas) {Pipeline documental\\(AWS Lambda)};
+
+\draw[arr] (s3) -- (lambdas);
+\draw[arr] (lambdas) -- (rag) node[lbl, pos=0.35, right] {indexación};
+
+\end{tikzpicture}
+\caption{Arquitectura general de la aplicación.}
+\label{fig:arquitectura}
+\end{figure}
 
 El orquestador multiagente y la interfaz de usuario se ejecutan dentro del mismo proceso: la interfaz invoca directamente el grafo de agentes sin que exista una frontera HTTP entre ambos. Esta decisión de diseño simplifica la implementación de la interacción humana en el bucle, ya que el estado de la conversación y el de la generación de la propuesta comparten el mismo ciclo de vida. El API backend, en cambio, sí se comunica con el resto de componentes mediante peticiones HTTP autenticadas, actuando como capa de persistencia común tanto para los metadatos documentales generados por el pipeline como para el estado de las propuestas gestionado por el orquestador.
 
@@ -134,8 +169,8 @@ El flujo entre agentes no es estrictamente secuencial: la búsqueda de informaci
 Un aspecto central del diseño es la incorporación de dos puntos de \emph{interacción humana en el bucle} (\textit{human-in-the-loop}), en los que el flujo se detiene de forma obligatoria hasta recibir una decisión del profesional:
 
 \begin{enumerate}
-\item \textbf{Selección de precios:} tras consultar las opciones de vuelo y alojamiento, el flujo se detiene para que el profesional seleccione manualmente la opción de cada categoría antes de continuar.
-\item \textbf{Revisión final:} tras generar la propuesta comercial completa, el flujo se detiene para que el profesional la apruebe, la rechace indicando comentarios de corrección, la descarte o la guarde como borrador.
+\item \textbf{Selección de precios:} tras consultar las opciones de vuelo y alojamiento, el flujo se detiene para que el profesional seleccione manualmente la opción de cada categoría antes de continuar, tal como se muestra en la Figura~\ref{fig:frontend-seleccion-precios}.
+\item \textbf{Revisión final:} tras generar la propuesta comercial completa, el flujo se detiene para que el profesional la apruebe, la rechace indicando comentarios de corrección, la descarte o la guarde como borrador, tal como se muestra en la Figura~\ref{fig:frontend-revision-flyer}.
 \end{enumerate}
 
 Este diseño responde directamente a la necesidad, identificada en el análisis del problema, de mantener al profesional como responsable último de las decisiones con impacto comercial, utilizando el sistema como generador de una propuesta inicial revisable y no como sustituto de su criterio.
