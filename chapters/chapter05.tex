@@ -81,8 +81,6 @@ La Tabla~\ref{tab:agent-metrics} resume las métricas operativas por agente. El 
 \begin{table}[htbp]
 \centering
 \fontsize{10}{12}\selectfont
-\caption{Métricas operativas por agente sobre las 51~trazas, extraídas de LangSmith.}
-\label{tab:agent-metrics}
 \begin{tabular}{lrrrrrr}
 \toprule
 Agente & Modelo & $n$ & Lat.\ p50 (s) & Coste (\$) & Tokens & \% razon. \\
@@ -96,6 +94,8 @@ Imagen & gpt-image-2 & 15 & 23{,}7 & --- & --- & --- \\
 \textbf{Total} & & \textbf{105} & & \textbf{2{,}173} & \textbf{589\,845} & \\
 \bottomrule
 \end{tabular}
+\caption{Métricas operativas por agente sobre las 51~trazas, extraídas de LangSmith.}
+\label{tab:agent-metrics}
 \end{table}
 
 La Figura~\ref{fig:cost-by-agent} muestra el desglose de coste por agente. Se observa que el agente de redacción y el de información concentran el 82\% del coste total, mientras que el orquestador es prácticamente gratuito. Esta distribución justifica la elección de modelos por agente descrita en la Sección~4.8: el orquestador, que se invoca en cada turno de conversación, utiliza un modelo económico; el agente de redacción, que produce el entregable final, utiliza el modelo más capaz.
@@ -169,8 +169,6 @@ La Tabla~\ref{tab:eval-summary} muestra las puntuaciones medias por criterio. La
 \begin{table}[htbp]
 \centering
 \fontsize{10}{12}\selectfont
-\caption{Resultados de la evaluación LLM-as-judge sobre 15~itinerarios (escala 1--5).}
-\label{tab:eval-summary}
 \begin{tabular}{lcccc}
 \toprule
 Criterio & Media & Desv.\ típ.\ & Mín.\ & Máx.\ \\
@@ -183,6 +181,8 @@ Ausencia de datos inventados & 4{,}60 & 1{,}12 & 1 & 5 \\
 Valoración global & 4{,}33 & 1{,}11 & 1 & 5 \\
 \bottomrule
 \end{tabular}
+\caption{Resultados de la evaluación LLM-as-judge sobre 15~itinerarios (escala 1--5).}
+\label{tab:eval-summary}
 \end{table}
 
 \begin{figure}[htbp]
@@ -232,8 +232,6 @@ El sistema asigna a cada agente el modelo más adecuado a su tarea, atendiendo a
 \begin{table}[htbp]
 \centering
 \fontsize{10}{12}\selectfont
-\caption{Comparativa de modelos por agente, extraída de las trazas de LangSmith.}
-\label{tab:model-comparison}
 \begin{tabular}{lrrrr}
 \toprule
 Modelo & Agentes & $n$ & Coste (\$) & Tokens \\
@@ -243,6 +241,8 @@ gpt-4o & Información, Precios & 39 & 1{,}175 & 425\,054 \\
 gpt-5 & Redacción & 16 & 0{,}985 & 147\,559 \\
 \bottomrule
 \end{tabular}
+\caption{Comparativa de modelos por agente, extraída de las trazas de LangSmith.}
+\label{tab:model-comparison}
 \end{table}
 
 El modelo \texttt{gemini-3.1-flash-lite}, utilizado por el orquestador, procesa 35~invocaciones con un coste marginal de 0{,}012~\$ (0{,}5\% del coste total). Su latencia mediana de 1{,}1~s lo hace apto para la conversación interactiva, donde el profesional espera una respuesta inmediata. \texttt{gpt-4o}, utilizado por los agentes de información y precios, procesa el mayor volumen de tokens (425\,054) por el contexto RAG que recibe, con un coste de 1{,}175~\$. \texttt{gpt-5}, reservado para la redacción del itinerario, consume 147\,559~tokens en 16~invocaciones, de los cuales el 53{,}6\% son tokens de razonamiento. Aunque su coste por invocación es el más alto (0{,}061~\$ de media), la calidad de la salida estructurada justifica su uso en la fase donde un error tiene mayor impacto en el resultado final.
@@ -255,8 +255,6 @@ La Tabla~\ref{tab:global-results} resume los resultados globales del sistema sob
 \begin{table}[htbp]
 \centering
 \fontsize{10}{12}\selectfont
-\caption{Resultados globales del sistema sobre las 51~trazas (turnos).}
-\label{tab:global-results}
 \begin{tabular}{lr}
 \toprule
 Métrica & Valor \\
@@ -279,6 +277,8 @@ Fragmentos por consulta & 11{,}2 \\
 Score medio RAG & 0{,}665 \\
 \bottomrule
 \end{tabular}
+\caption{Resultados globales del sistema sobre las 51~trazas (turnos).}
+\label{tab:global-results}
 \end{table}
 
 El sistema presenta una fiabilidad del 100\% en las trazas registradas, sin errores en ninguno de los 51~turnos. El coste medio por traza es de 0{,}043~\$ y la latencia mediana por traza de 24{,}5~s. Estas cifras, sin embargo, no reflejan el coste ni el tiempo de generar un flyer completo, que se discute a continuación.
@@ -293,8 +293,6 @@ La Tabla~\ref{tab:flyer-completo} resume estas métricas sobre las 14~conversaci
 \begin{table}[htbp]
 \centering
 \fontsize{10}{12}\selectfont
-\caption{Métricas de un flyer completo, agregando por \texttt{thread\_id} las 14~conversaciones que finalizaron.}
-\label{tab:flyer-completo}
 \begin{tabular}{lr}
 \toprule
 Métrica & Valor \\
@@ -311,13 +309,13 @@ Latencia flyer p50 & 166{,}1 s \\
 Latencia flyer p99 & 1\,329{,}0 s \\
 \bottomrule
 \end{tabular}
+\caption{Métricas de un flyer completo, agregando por \texttt{thread\_id} las 14~conversaciones que finalizaron.}
+\label{tab:flyer-completo}
 \end{table}
 
 \begin{table}[htbp]
 \centering
 \fontsize{10}{12}\selectfont
-\caption{Comparativa entre métricas por traza (51~trazas) y por flyer completo (14~conversaciones).}
-\label{tab:traza-vs-flyer}
 \begin{tabular}{lrr}
 \toprule
 Métrica & Por traza (turno) & Por flyer completo \\
@@ -329,6 +327,8 @@ Latencia p99 & 348{,}6 s & 1\,329{,}0 s \\
 Tokens medios & 11\,566 & 33\,202 \\
 \bottomrule
 \end{tabular}
+\caption{Comparativa entre métricas por traza (51~trazas) y por flyer completo (14~conversaciones).}
+\label{tab:traza-vs-flyer}
 \end{table}
 
 El coste medio real de generar un flyer completo es de 0{,}128~\$, unas tres veces superior al coste por traza. La latencia mediana de un flyer completo es de 166{,}1~s (2{,}8~minutos), frente a los 24{,}5~s de un turno aislado; el percentil 99 alcanza los 1\,329~s (22~minutos), correspondiente a conversaciones con hasta 7~turnos de revisión humana. Estos valores son los que deben utilizarse al estimar el coste y el tiempo de operación del sistema en un escenario comercial real, y son consistentes con el carácter \textit{human-in-the-loop} del flujo: cada punto de revisión añade un turno y, con él, nuevas invocaciones del orquestador, el agente de información y el de precios.
