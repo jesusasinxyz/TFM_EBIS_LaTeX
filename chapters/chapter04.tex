@@ -34,24 +34,134 @@ templates/            Plantillas corporativas de la propuesta (PPTX)
 Esta organización mantiene separadas cuatro responsabilidades que, aunque colaboran para producir una única propuesta de viaje, tienen ciclos de vida y necesidades de despliegue distintas: el pipeline documental se ejecuta de forma asíncrona y esporádica (solo cuando se carga un documento nuevo), mientras que el orquestador y la interfaz atienden conversaciones en tiempo real, y la API de persistencia da servicio a ambos por igual.
 
 \TFMSection{Implementación del pipeline de procesamiento documental}
-El valor de este pipeline es concreto: convierte un tarifario o catálogo en PDF, tal y como lo entrega un proveedor turístico, en información que el sistema puede consultar en lenguaje natural pocos minutos después de su carga, sin que ningún empleado tenga que leerlo, resumirlo o clasificarlo manualmente. Se implementa como tres funciones independientes encadenadas:
+
+El pipeline transforma automáticamente los documentos PDF proporcionados por los
+proveedores en contenido estructurado e indexado, preparado para su consulta mediante
+lenguaje natural. Se ha implementado siguiendo una arquitectura \textit{serverless} y
+orientada a eventos, de forma que el procesamiento comienza automáticamente cuando
+se incorpora un nuevo documento al repositorio de entrada.
+
+Para ello, se ha configurado una regla de Amazon EventBridge que detecta los eventos
+de creación de objetos con extensión \texttt{.pdf} en el bucket de Amazon S3
+\texttt{tfm\_raw\_documents}. Cuando se produce un evento que cumple estas condiciones,
+la regla inicia una ejecución de la máquina de estados de AWS Step Functions y le
+proporciona la referencia al bucket y a la clave del documento cargado. De este modo,
+el usuario únicamente debe depositar el PDF en el repositorio correspondiente, sin
+necesidad de iniciar manualmente ninguna función ni proceso adicional.
+
+La máquina de estados ejecuta secuencialmente tres funciones Lambda independientes:
+\texttt{PdfToImage}, \texttt{ImageToMarkdown} e
+\texttt{IndexDocumentEmbeddings}. Cada función conserva sus resultados en los
+servicios de almacenamiento o persistencia correspondientes y transmite a la siguiente
+etapa únicamente las referencias necesarias para continuar el procesamiento, evitando
+incluir los documentos completos en el estado del flujo.
+
+\newpage
+La Figura~\ref{fig:step-functions-document-pipeline} muestra la orquestación del
+pipeline y los servicios con los que interactúa cada función Lambda.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.95\textwidth]
+    {assets/diagrama_pipeline_procesamiento_documental.png}
+    \caption{Orquestación e interacciones del pipeline documental implementado mediante AWS Step Functions.}
+    \label{fig:step-functions-document-pipeline}
+\end{figure}
 
 \begin{tfmbullets}
-\item \textbf{PDF a imágenes.} Cada página del documento se renderiza como una imagen de alta resolución mediante la librería PyMuPDF. Esta conversión, aunque pueda parecer un paso intermedio prescindible, es la que permite tratar correctamente tarifarios con maquetación compleja (tablas de precios, logotipos, columnas) que un extractor de texto de PDF convencional interpretaría de forma desordenada.
-\item \textbf{Imágenes a Markdown.} Cada imagen se procesa con un modelo de lenguaje con capacidad de visión, que reconstruye el contenido en formato Markdown conservando la jerarquía del documento original (encabezados, tablas, condiciones de grupo, precios) en lugar de devolver texto plano sin estructura. Adicionalmente, si el documento contiene enlaces a páginas web con información complementaria, el sistema los visita y añade ese contenido al Markdown final, ampliando así la información disponible sin intervención humana.
-\item \textbf{Limpieza, normalización y extracción de metadatos.} A partir del Markdown generado, un segundo modelo extrae de forma estructurada los datos de negocio del documento: destino, proveedor, actividades, precios, condiciones y campos de accesibilidad, entre otros. El propio proceso de extracción normaliza topónimos con doble denominación oficial (por ejemplo, unifica ``Alacant''/``Alicante'') e incorpora una regla explícita para no inventar datos de contacto (teléfonos, correos o webs) que no aparezcan literalmente en el documento, mitigando así uno de los riesgos característicos de la IA generativa aplicada a documentación real.
-\item \textbf{Chunking e indexación.} El Markdown se divide en fragmentos de tamaño acotado, se genera una representación vectorial de cada fragmento y se indexa en la base de datos vectorial junto con los metadatos de destino y actividades, quedando así disponible para el sistema RAG.
+
+\item \textbf{\texttt{PdfToImage}.}
+La primera función recibe la referencia al documento PDF almacenado en Amazon S3 y
+renderiza cada una de sus páginas como una imagen de alta resolución mediante la
+librería PyMuPDF. Esta conversión permite conservar tablas, columnas, logotipos,
+precios y otros elementos visuales que podrían perderse mediante una extracción
+convencional de texto.
+
+Las imágenes resultantes se almacenan nuevamente en Amazon S3, dentro del repositorio
+destinado a las páginas procesadas, y sus claves se incorporan al estado de la ejecución
+para que puedan ser utilizadas por la siguiente etapa. Esta función interactúa, por
+tanto, principalmente con Amazon S3, desde donde obtiene el PDF original y donde
+almacena las imágenes generadas.
+
+\item \textbf{\texttt{ImageToMarkdown}.}
+La segunda función recupera de Amazon S3 las imágenes generadas y las procesa mediante
+un modelo multimodal con capacidad de visión. El modelo reconstruye el contenido del
+documento en formato Markdown, conservando su jerarquía de encabezados, tablas,
+condiciones comerciales, precios y demás información relevante.
+
+Cuando se detectan enlaces web dentro del documento, la función consulta dichas
+páginas e incorpora al Markdown la información complementaria obtenida mediante
+\textit{web scraping}. A continuación, se realiza la limpieza y normalización del
+contenido y se extraen de forma estructurada los metadatos del documento, como el
+destino, el proveedor, las actividades, los precios, las condiciones y los campos de
+accesibilidad.
+
+El proceso incluye reglas para normalizar topónimos con diferentes denominaciones y
+para evitar la generación de datos de contacto que no aparezcan explícitamente en las
+fuentes procesadas. El Markdown resultante se almacena en Amazon S3, mientras que los
+metadatos estructurados se envían a la API backend, que se encarga de persistirlos en
+Amazon DynamoDB.
+
+Esta función interactúa con Amazon S3, el proveedor del modelo multimodal, las páginas
+web referenciadas en el documento y la API de persistencia de la aplicación.
+
+\item \textbf{\texttt{IndexDocumentEmbeddings}.}
+La última función recupera de Amazon S3 el Markdown normalizado y obtiene, cuando es
+necesario, los metadatos asociados al documento a través de la API backend. El contenido
+se divide en fragmentos de tamaño acotado, procurando mantener unidades de información
+suficientemente completas para su posterior recuperación.
+
+Para cada fragmento se genera una representación vectorial mediante el modelo Titan
+Text Embeddings de Amazon Bedrock. Los fragmentos, sus vectores y los metadatos
+relacionados con el destino y las actividades se indexan posteriormente en Amazon
+OpenSearch Serverless.
+
+Esta función interactúa con Amazon S3 para recuperar el contenido, con la API backend
+para consultar los metadatos, con Amazon Bedrock para generar los embeddings y con
+Amazon OpenSearch Serverless para almacenar los fragmentos indexados.
+
 \end{tfmbullets}
 
+AWS Step Functions controla el orden de ejecución y garantiza que cada función se
+inicie únicamente cuando la etapa anterior ha finalizado correctamente. La persistencia
+de los resultados intermedios en Amazon S3 desacopla las funciones y permite probar,
+actualizar o volver a ejecutar cada una de ellas de manera independiente.
+
+Una vez finalizada la función \texttt{IndexDocumentEmbeddings}, el contenido del
+documento queda disponible en Amazon OpenSearch Serverless para las consultas
+realizadas por el sistema RAG. De esta forma, el proceso completo, desde la carga del
+PDF hasta su disponibilidad para la recuperación semántica, se ejecuta automáticamente
+sin intervención manual.
 
 \TFMSection{Implementación del sistema RAG}
-El sistema RAG es el componente que permite que las respuestas del sistema estén fundamentadas en la documentación real de los proveedores, en lugar de depender únicamente del conocimiento general del modelo de lenguaje, lo que reduce el riesgo de que la propuesta incluya información inventada o desactualizada.
 
-La recuperación combina dos criterios: una búsqueda por similitud semántica (k-NN sobre los embeddings de cada fragmento) y un filtro exacto por destino y provincia, de manera que una consulta sobre un destino concreto no recupere, por alta similitud semántica, contenido de un destino distinto. Los embeddings se generan con el modelo Titan Text Embeddings de Amazon Bedrock, tanto en el momento de la indexación como en el de la consulta.
+El sistema RAG permite fundamentar las respuestas en la documentación real de los
+proveedores, reduciendo el riesgo de generar información inventada, desactualizada o no relacionada con el destino solicitado.
 
-El sistema incorpora también un módulo de reordenación semántica de resultados (\textit{reranking}) sobre Amazon Bedrock, implementado y funcional, pero actualmente no invocado en la ruta de consulta activa. Se documenta como una funcionalidad ya construida y pendiente de activar tras evaluar su impacto en coste y latencia, más que como una carencia del diseño.
+La base de conocimiento se implementa sobre Amazon OpenSearch Serverless. Cada
+fragmento documental se almacena junto con su representación vectorial, su contenido textual y los metadatos extraídos durante el pipeline, como la ciudad, la provincia, el país y las actividades asociadas.
 
-El agente de información y el agente de precios son los dos consumidores de este sistema: el primero lo utiliza para recuperar contexto cultural y actividades relacionadas con el destino y los intereses del cliente, aplicando un umbral mínimo de relevancia antes de considerar un fragmento útil; el segundo lo utiliza de forma complementaria a las fuentes externas de precios, para localizar alojamientos concretos mencionados en la documentación de los proveedores.
+Cuando un agente realiza una consulta, esta se transforma en un embedding mediante el modelo Titan Text Embeddings de Amazon Bedrock. A continuación, el cliente RAG ejecuta en OpenSearch Serverless una búsqueda \textit{k-nearest neighbours} (k-NN), combinada con filtros exactos de destino y provincia. De esta forma, se recuperan los fragmentos semánticamente más próximos sin mezclar documentación correspondiente a otras localizaciones.
+
+La Figura~\ref{fig:rag-query-flow} resume el flujo de consulta implementado, desde la generación del embedding hasta la construcción del contexto enviado al modelo de lenguaje.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]
+    {assets/flujo_consulta_sistema_rag.png}
+    \caption{Flujo simplificado de consulta del sistema RAG.}
+    \label{fig:rag-query-flow}
+\end{figure}
+
+Las comunicaciones con Amazon Bedrock y Amazon OpenSearch Serverless se realizan
+mediante credenciales y permisos de AWS IAM. Las peticiones a OpenSearch Serverless se firman mediante AWS Signature Version 4, evitando utilizar credenciales específicas de la base de datos dentro de la aplicación.
+
+Tras recuperar los resultados, se aplica un umbral mínimo de relevancia para descartar los fragmentos con baja similitud. Los fragmentos válidos se formatean junto con sus metadatos y se incorporan al contexto del modelo de lenguaje para generar una respuesta fundamentada.
+
+El sistema dispone también de un módulo de \textit{reranking} basado en Amazon
+Bedrock. Aunque está implementado y es funcional, no se invoca actualmente en la ruta activa de consulta, a la espera de evaluar su impacto en la calidad, la latencia y el coste.
+
+Los principales consumidores del sistema RAG son el agente de información, que recupera contexto cultural y actividades, y el agente de precios, que lo utiliza de forma complementaria para localizar alojamientos y servicios incluidos en la documentación de los proveedores.
 
 \TFMSection{Implementación del sistema multiagente}
 \label{sec:impl-multiagente}
@@ -107,7 +217,40 @@ Esta capa se ha propagado a los agentes orquestador, de información, de precios
 Cada agente utiliza el modelo de lenguaje más adecuado a su tarea, atendiendo a un equilibrio entre coste y fiabilidad: modelos con cuota de uso económica para tareas de alto volumen (interpretación de la conversación, reconocimiento de documentos) y modelos con mayor capacidad de generación estructurada para tareas donde un error tiene más impacto en el resultado final (recuperación de información, cálculo de precios, redacción del itinerario). En todos los casos se exige al modelo una salida estructurada validada contra un esquema de datos predefinido, en lugar de interpretar texto libre, lo que evita errores de formato en las respuestas y hace que el comportamiento del sistema sea predecible y verificable.
 
 \TFMSection{Integración con fuentes externas}
-La consulta de precios en tiempo real se realiza mediante un servicio externo que unifica el acceso a distintos proveedores de vuelos y alojamiento. Las búsquedas de vuelo de ida y de vuelta se ejecutan en paralelo como dos búsquedas independientes, lo que permite combinar aerolíneas distintas para cada trayecto si esa combinación resulta más económica. Los resultados de cada proveedor se normalizan a un formato interno común antes de presentarse al profesional, de forma que la interfaz no dependa del formato particular de cada fuente externa.
+
+La información disponible en la base documental no siempre incluye precios actualizados
+de vuelos y alojamientos. Por este motivo, el agente de precios se integra con SearchAPI,
+un servicio externo que permite consultar los resultados de Google Flights y Google
+Hotels mediante una API REST \parencite{searchapiFlights,searchapiHotels}.
+
+Para la búsqueda de vuelos se realizan dos consultas independientes: una para el trayecto
+de ida y otra para el de vuelta. Ambas peticiones se ejecutan en paralelo, reduciendo el
+tiempo total de respuesta y permitiendo combinar compañías aéreas diferentes cuando
+esta opción resulta más económica. Los resultados obtenidos incluyen información como
+los aeropuertos, los horarios, la duración, las escalas y el precio de cada trayecto.
+
+La búsqueda de alojamientos utiliza el destino, las fechas de entrada y salida y el número
+de viajeros. A partir de la respuesta externa, el sistema selecciona y normaliza campos
+como el nombre del alojamiento, la valoración, el precio y la información disponible
+sobre la estancia.
+
+Los resultados de vuelos y hoteles se transforman en modelos internos comunes antes
+de ser utilizados por el agente de precios. De esta forma, el resto de la aplicación no
+depende directamente de la estructura específica devuelta por SearchAPI y sería posible
+sustituir o incorporar nuevos proveedores sin modificar la interfaz ni el flujo
+multiagente.
+
+Durante el desarrollo se estudió inicialmente la integración con las API de Amadeus a
+través de un servidor MCP. Sin embargo, esta alternativa se descartó debido a los cambios
+en la disponibilidad de su plataforma Self-Service y a la imposibilidad de mantener un
+acceso gratuito adecuado para la prueba de concepto \parencite{amadeusSelfService}.
+Por ello, se optó por SearchAPI, que permitió completar la integración de vuelos y
+alojamientos con una menor complejidad de acceso.
+
+Los precios y la disponibilidad obtenidos deben considerarse orientativos, ya que pueden
+variar entre el momento de la consulta y la realización efectiva de la reserva. Por esta
+razón, el sistema presenta varias alternativas al profesional y mantiene la selección final
+como un punto obligatorio de intervención humana.
 
 \TFMSection{Implementación de la API}
 La API de persistencia expone los servicios necesarios para que la interfaz y el pipeline documental compartan una única fuente de verdad: autenticación de usuarios, alta y consulta de metadatos documentales, y alta, consulta y actualización del estado de las propuestas. El acceso de los usuarios finales se protege mediante un token de sesión, mientras que el pipeline documental se autentica con una cuenta de servicio independiente, de forma que las credenciales de un empleado nunca se comparten con procesos automáticos internos. Una propuesta solo puede modificarse por la persona que la creó, aunque su consulta desde el histórico está abierta a cualquier usuario autenticado, en línea con el uso compartido que hace de la herramienta un equipo comercial.

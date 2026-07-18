@@ -18,7 +18,6 @@ La principal motivación es reducir el tiempo dedicado a tareas repetitivas de b
 
 Desde el punto de vista empresarial, la solución puede mejorar la eficiencia del proceso comercial, favorecer la reutilización de la documentación de proveedores y reducir la dependencia del conocimiento individual de cada empleado. Desde el punto de vista tecnológico, permite estudiar la aplicación conjunta de sistemas RAG, modelos generativos y agentes inteligentes dentro de una solución orientada a un caso de uso real.
 
-\clearpage
 \TFMSection{Objetivos Generales y Específicos}
 El objetivo principal de este Trabajo Fin de Máster ha sido el diseño y desarrollo de un sistema basado en inteligencia artificial generativa capaz de asistir a los profesionales de una agencia de viajes en la elaboración de propuestas personalizadas. La solución permite procesar documentación turística, recuperar información relevante mediante técnicas RAG y coordinar distintos agentes especializados para consultar destinos, actividades, alojamientos, vuelos y precios, integrando para ello modelos de lenguaje, servicios cloud de AWS y fuentes externas de información.
 
@@ -31,7 +30,7 @@ Para poder cumplir con el objetivo principal, se han definido los siguientes obj
 \item \textbf{Desarrollo de una arquitectura multiagente:} Implementar agentes especializados capaces de recopilar los requisitos del usuario, consultar información turística, obtener precios y elaborar una propuesta de viaje coherente.
 \end{itemize}
 
-\clearpage
+
 \begin{itemize}
 \item \textbf{Integración con fuentes externas:} Incorporar servicios externos, en particular mediante SearchAPI, para consultar información dinámica sobre vuelos y alojamientos cuando los datos disponibles en la base documental no sean suficientes.
 \item \textbf{Desarrollo de una API de integración:} Implementar los servicios necesarios para comunicar la interfaz de usuario, el sistema multiagente, la base de conocimiento y los servicios externos.
@@ -45,7 +44,7 @@ Este conjunto de objetivos busca reducir el tiempo dedicado a tareas manuales de
 \TFMSection{Estructura del Proyecto}
 La memoria se organiza en ocho capítulos, cuyo contenido se resume en la Tabla \ref{tab:estructura}.
 
-\begin{table}[h!]
+\begin{table}[H]
 \centering
 \begin{tabular}{@{}p{4.5cm}p{9cm}@{}}
 \toprule
@@ -65,7 +64,7 @@ La memoria se organiza en ocho capítulos, cuyo contenido se resume en la Tabla 
 \label{tab:estructura}
 \end{table}
 
-\clearpage
+
 \TFMSection{Alcance de la Solución}
 El proyecto comprende el desarrollo de una prueba de concepto capaz de procesar documentación turística, extraer y normalizar su contenido, indexarlo en una base de datos vectorial y recuperarlo mediante técnicas RAG. Sobre esta base, se implementa un sistema de agentes especializados para recopilar requisitos del viaje, consulta información sobre destinos y actividades, obtener datos de precios cuando sea necesario, generar una imagen de portada y generar una propuesta personalizada.
 La solución incluye una interfaz básica desarrollada en Streamlit, una API para la comunicación entre componentes y una infraestructura cloud basada en servicios de AWS para el almacenamiento, procesamiento, indexación y persistencia de la información
