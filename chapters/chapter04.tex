@@ -54,6 +54,7 @@ El sistema incorpora también un módulo de reordenación semántica de resultad
 El agente de información y el agente de precios son los dos consumidores de este sistema: el primero lo utiliza para recuperar contexto cultural y actividades relacionadas con el destino y los intereses del cliente, aplicando un umbral mínimo de relevancia antes de considerar un fragmento útil; el segundo lo utiliza de forma complementaria a las fuentes externas de precios, para localizar alojamientos concretos mencionados en la documentación de los proveedores.
 
 \TFMSection{Implementación del sistema multiagente}
+\label{sec:impl-multiagente}
 
 El sistema multiagente se implementa como un grafo de estados en LangGraph, cuyos nodos y flujos de control se resumen en la Figura \ref{fig:orquestrador}. A continuación se describe la función que cumple cada agente dentro del grafo y las decisiones de implementación adoptadas en cada caso.
 
