@@ -12,6 +12,7 @@ En una agencia de viajes, la información necesaria para montar una propuesta --
 \begin{tfmbullets}
 \item \textbf{Tiempo liberado para captar clientes, no solo para trabajar más rápido:} un borrador que antes exigía horas de búsqueda y redacción se genera en minutos (2,8~minutos de mediana medidos en producción, Capítulo~5). El objetivo no es que el comercial revise más deprisa, sino que ese tiempo recuperado se reinvierta en prospección y captación de nuevos clientes, la actividad que genera negocio nuevo y que hoy compite por las mismas horas que la elaboración de propuestas.
 \item \textbf{Capacidad de absorber picos de demanda sin degradar el servicio:} en temporada alta o ante campañas puntuales, el volumen de solicitudes puede multiplicarse sin que el equipo comercial crezca en la misma proporción. Al no depender de que un comercial investigue cada propuesta desde cero, el mismo equipo puede atender a todos los clientes con una primera respuesta rápida incluso en los picos, en lugar de verse obligado a elegir a quién atiende antes o a alargar los tiempos de respuesta cuando más solicitudes llegan a la vez.
+\item \textbf{Mayor conversión por una respuesta más rápida:} al recibir la propuesta mientras su necesidad de viaje sigue siendo urgente, y antes de que le dé tiempo a comparar con otra agencia, el cliente tiene más probabilidades de cerrar la venta. Este efecto no se ha medido y no se cuantifica en el modelo de ahorro (más abajo), pero apunta en la misma dirección: a más ahorro de tiempo, mayor tasa de cierre esperable.
 \item \textbf{Fuente única de verdad:} toda la documentación de proveedores queda centralizada, actualizada y consultable en lenguaje natural, en lugar de dispersa entre PDFs y correos.
 \item \textbf{Control humano en las decisiones comerciales:} el sistema propone, pero es el comercial quien elige el precio final y aprueba la propuesta antes de enviarla, evitando el riesgo de automatizar decisiones con impacto directo en el cliente.
 \end{tfmbullets}
@@ -29,7 +30,7 @@ La Tabla \ref{tab:roi-supuestos} recoge un modelo paramétrico sencillo para est
 \textbf{Variable} & \textbf{Descripción} & \textbf{Valor ilustrativo} \\
 \midrule
 $T_{\text{manual}}$ & Horas dedicadas hoy a preparar una propuesta a mano & 4,0 h \\
-$T_{\text{asistida}}$ & Horas dedicadas a revisar y ajustar la propuesta generada por el sistema & 1,0 h \\
+$T_{\text{asistida}}$ & Horas dedicadas a revisar y ajustar la propuesta generada por el sistema & 0,5 h \\
 $C_{\text{hora}}$ & Coste laboral cargado por hora de un comercial & 25 €/h \\
 $N$ & Propuestas generadas al mes & 25 \\
 \bottomrule
@@ -47,15 +48,29 @@ A partir de estos supuestos, el ahorro de tiempo y el ahorro económico mensual 
 \text{Ahorro económico (€/mes)} = N \times (T_{\text{manual}} - T_{\text{asistida}}) \times C_{\text{hora}}
 \]
 
-Con los valores ilustrativos de la Tabla \ref{tab:roi-supuestos}, esto supondría liberar 75 horas comerciales al mes (25 propuestas × 3 horas ahorradas), equivalentes a unos 1.875 €/mes (22.500 €/año) en tiempo comercial recuperado para tareas de mayor valor, como la atención al cliente o el cierre de ventas, en lugar de la búsqueda y redacción manual. Como se detalla en la estructura de costes (más abajo), al no exigir inversión inicial este ahorro se traduce en un retorno prácticamente inmediato desde el primer mes de uso.
+Con los valores ilustrativos de la Tabla \ref{tab:roi-supuestos}, cada propuesta libera 3,5~h de tiempo comercial (4,0~h manuales frente a 0,5~h de revisión asistida). El valor de $T_{\text{asistida}}$ resulta holgado frente al dato real: sobre las 14~conversaciones reales que completaron un flyer (Capítulo~5), el propio sistema tarda una mediana de solo 166~s (2,8~minutos) en generar el borrador, por lo que dentro de esa media hora quedan más de 27~minutos disponibles para que el comercial revise, ajuste precios y decida sin sentirse presionado por el tiempo.
 
-A diferencia de $T_{\text{manual}}$, $C_{\text{hora}}$ y $N$ --que dependen de cada agencia y siguen siendo ilustrativos--, el tiempo que tarda el propio sistema en generar un borrador ya no es una estimación: sobre las 14~conversaciones reales que completaron un flyer (Capítulo~5), la latencia mediana es de 166~s (2,8~minutos), con un percentil~99 de 22~minutos. Esto indica que la hora asumida en $T_{\text{asistida}}$ corresponde casi por completo al tiempo de revisión humana, no a una espera del sistema.
+Para un único comercial que genera 25~propuestas al mes, esto supone 87,5~h/mes liberadas, equivalentes a 2.187,5~€/mes (26.250~€/año). La Tabla~\ref{tab:roi-escalado} extrapola esta misma cifra por comercial a una oficina de tamaño medio (3~comerciales) y a un equipo comercial de mayor tamaño (100~comerciales, propio de una cadena o franquicia con varias oficinas).
 
-El modelo anterior tampoco descuenta el coste de operar el sistema. Sobre las mismas 14~conversaciones, el coste medio real de generar un flyer completo es de 0,128~\$ (Capítulo~5; coste facturado en dólares por los proveedores de modelos de lenguaje, frente al ahorro laboral expresado en euros), lo que permite calcular un ahorro neto:
-\[
-\text{Ahorro económico neto (€/mes)} = \text{Ahorro económico bruto} - N \times \text{Coste medio por flyer}
-\]
-Con $N=25$, el coste operativo mensual asciende a apenas 3,2~\$ (25 × 0,128~\$), frente a un ahorro bruto de 1.875~€/mes: incluso asumiendo paridad aproximada entre ambas divisas para esta estimación, y con un volumen de propuestas conservador, el coste de ejecutar el sistema resulta prácticamente despreciable frente al ahorro laboral.
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+& \textbf{1 comercial} & \textbf{Oficina (3 comerciales)} & \textbf{Equipo (100 comerciales)} \\
+\midrule
+Propuestas/mes & 25 & 75 & 2\,500 \\
+Ahorro mensual & 2\,187,5 € & 6\,562,5 € & 218\,750 € \\
+Ahorro anual & 26\,250 € & 78\,750 € & 2\,625\,000 € \\
+Coste operativo mensual real & 3,2 \$ & 9,6 \$ & 320 \$ \\
+\bottomrule
+\end{tabular}
+\caption{Escalado del ahorro estimado según el tamaño del equipo comercial. El ahorro por comercial usa los valores ilustrativos de la Tabla~\ref{tab:roi-supuestos}; el coste operativo usa el coste medio real por flyer medido en producción (0,128~\$, Capítulo~5).}
+\label{tab:roi-escalado}
+\end{table}
+
+Como muestra la última fila de la Tabla~\ref{tab:roi-escalado}, el coste operativo real del sistema --calculado como $N \times$ Coste medio por flyer, con el coste medio de 0,128~\$ medido sobre las 14~conversaciones reales que completaron un flyer (Capítulo~5; cifra facturada en dólares por los proveedores de modelos de lenguaje, frente al ahorro laboral expresado en euros)-- permanece marginal incluso al escalar a un equipo de 100 comerciales: apenas 320~\$/mes frente a un ahorro bruto de 218.750~€/mes. Como se detalla en la estructura de costes (más abajo), al no exigir inversión inicial este ahorro se traduce en un retorno prácticamente inmediato desde el primer mes de uso, a cualquier escala de equipo comercial.
+
+Estas cifras tampoco incluyen el efecto sobre la tasa de conversión de cada propuesta: al reducir drásticamente el tiempo de respuesta al cliente, la propuesta llega mientras su necesidad de viaje sigue siendo urgente y antes de que compare con otras agencias, lo que razonablemente debería traducirse en una tasa de cierre más alta que con el proceso manual. Este efecto no se ha medido y no se incluye en los cálculos anteriores, por lo que el ahorro presentado debe interpretarse como un suelo conservador del impacto económico real y no como su límite superior.
 
 \TFMAnnexSection{Métricas Clave para el Posicionamiento Comercial}
 Para presentar el sistema a un cliente o patrocinador, y para su seguimiento posterior una vez en uso, se proponen las siguientes métricas:
