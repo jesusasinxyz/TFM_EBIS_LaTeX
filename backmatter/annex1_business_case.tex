@@ -1,100 +1,382 @@
 \TFMAnnex{Business Case}
 
-Este anexo traduce la solución técnica descrita en la memoria a un lenguaje de negocio, con el objetivo de presentar su valor a una agencia de viajes como potencial cliente o patrocinador del proyecto. Combina dos tipos de cifras: datos reales de coste, latencia y calidad medidos sobre el sistema en producción (Capítulo~5), y un modelo de ahorro laboral cuyos parámetros --tiempo manual, coste laboral y volumen de propuestas-- son \textbf{ilustrativos}.
+Este anexo traduce la solución técnica descrita en la memoria a un lenguaje de negocio,
+con el objetivo de presentar su valor a una agencia de viajes como potencial cliente o
+patrocinador del proyecto. Combina dos tipos de cifras: datos reales de coste, latencia
+y calidad medidos sobre el sistema en producción (Capítulo~5), y un modelo de ahorro
+laboral cuyos parámetros --tiempo manual, coste laboral y volumen de propuestas-- son
+\textbf{ilustrativos}.
 
 \TFMAnnexSection{Resumen Ejecutivo}
-La solución desarrollada automatiza la parte más repetitiva del trabajo comercial de una agencia de viajes --buscar información de proveedores, consultar precios y redactar una propuesta-- y entrega en minutos un primer borrador de propuesta de viaje personalizada, revisable por el propio comercial antes de enviarla al cliente. El sistema no sustituye al profesional: acelera la parte mecánica del proceso para que dedique su tiempo a lo que realmente genera negocio, ya sea prospectar y captar nuevos clientes en el día a día, o sostener el volumen de solicitudes en picos estacionales de demanda sin que ningún cliente quede desatendido o reciba una respuesta tardía.
+
+La solución desarrollada automatiza la parte más repetitiva del trabajo comercial de una
+agencia de viajes --buscar información de proveedores, consultar precios y redactar una
+propuesta-- y entrega en minutos un primer borrador de propuesta de viaje personalizada,
+revisable por el propio comercial antes de enviarla al cliente.
+
+El sistema no sustituye al profesional: acelera la parte mecánica del proceso para que
+dedique su tiempo a las actividades que generan negocio, como la prospección y captación
+de nuevos clientes, o para que pueda sostener el volumen de solicitudes durante picos
+estacionales de demanda sin que ningún cliente quede desatendido o reciba una respuesta
+tardía.
 
 \TFMAnnexSection{El Problema de Negocio}
-En una agencia de viajes, la información necesaria para montar una propuesta --tarifarios de proveedores, catálogos de actividades, disponibilidad de vuelos y alojamiento-- suele estar repartida entre PDFs, correos electrónicos y carpetas compartidas. Elaborar una propuesta a medida exige que un comercial localice manualmente esa información, la cruce con las preferencias del cliente y redacte un documento coherente, un proceso que se repite de forma prácticamente idéntica en cada solicitud y que depende en buena medida del conocimiento individual de cada empleado sobre dónde está cada dato. El coste de este proceso no es solo el tiempo dedicado, sino también el riesgo de ofrecer información desactualizada y la dificultad de escalar el volumen de propuestas sin aumentar el equipo comercial en la misma proporción.
+
+En una agencia de viajes, la información necesaria para preparar una propuesta
+--tarifarios de proveedores, catálogos de actividades, disponibilidad de vuelos y
+alojamiento-- suele estar repartida entre documentos PDF, correos electrónicos y
+carpetas compartidas.
+
+Elaborar una propuesta a medida exige que un comercial localice manualmente esa
+información, la cruce con las preferencias del cliente y redacte un documento coherente.
+Este proceso se repite de forma prácticamente idéntica en cada solicitud y depende, en
+buena medida, del conocimiento individual de cada empleado sobre dónde se encuentra
+cada dato.
+
+El coste de este proceso no se limita al tiempo dedicado. También existe el riesgo de
+utilizar información desactualizada y resulta difícil incrementar el volumen de
+propuestas sin aumentar el equipo comercial en la misma proporción.
 
 \TFMAnnexSection{Propuesta de Valor}
+
 \begin{itemize}
 
+\item \textbf{Tiempo liberado para captar clientes, no solo para trabajar más rápido:}
+un borrador que antes exigía horas de búsqueda y redacción se genera en minutos. La
+mediana medida en producción es de 2,8~minutos (Capítulo~5). El objetivo no es únicamente
+que el comercial prepare una propuesta con mayor rapidez, sino que el tiempo recuperado
+pueda reinvertirse en prospección y captación de nuevos clientes.
 
-\item \textbf{Tiempo liberado para captar clientes, no solo para trabajar más rápido:} un borrador que antes exigía horas de búsqueda y redacción se genera en minutos (2,8~minutos de mediana medidos en producción, Capítulo~5). El objetivo no es que el comercial revise más rápido, sino que ese tiempo recuperado se reinvierta en prospección y captación de nuevos clientes, la actividad que genera negocio nuevo y que hoy compite por las mismas horas que la elaboración de propuestas.
-\item \textbf{Capacidad de absorber picos de demanda sin degradar el servicio:} en temporada alta o ante campañas puntuales, el volumen de solicitudes puede multiplicarse sin que el equipo comercial crezca en la misma proporción. Al no depender de que un comercial investigue cada propuesta desde cero, el mismo equipo puede atender a todos los clientes con una primera respuesta rápida incluso en los picos, en lugar de verse obligado a elegir a quién atiende antes o a alargar los tiempos de respuesta cuando más solicitudes llegan a la vez. Es precisamente en estos picos --varias campañas o promociones activas a la vez, con un volumen de \textit{leads} muy superior al habitual-- cuando un proceso manual satura al equipo y genera los mayores retrasos en la respuesta; y es también en ese momento cuando más se pierde, porque un lead que no recibe una propuesta a tiempo tiende a acudir a otra agencia o a enfriarse. Mantener el tiempo de respuesta bajo control precisamente cuando más solicitudes llegan a la vez es, por tanto, donde el sistema evita más pérdida de conversión, no solo en el volumen habitual de trabajo.
-\item \textbf{Mayor conversión por una respuesta más rápida:} al recibir la propuesta mientras su necesidad de viaje sigue siendo urgente, y antes de que le dé tiempo a comparar con otra agencia, el cliente tiene más probabilidades de cerrar la venta. Este efecto no se ha medido y no se cuantifica en el modelo de ahorro (más abajo), pero apunta en la misma dirección: a más ahorro de tiempo, mayor tasa de cierre esperable.
-\item \textbf{Fuente única de verdad:} toda la documentación de proveedores queda centralizada, actualizada y consultable en lenguaje natural, en lugar de dispersa entre PDFs y correos.
-\item \textbf{Control humano en las decisiones comerciales:} el sistema propone, pero es el comercial quien elige el precio final y aprueba la propuesta antes de enviarla, evitando el riesgo de automatizar decisiones con impacto directo en el cliente.
+\item \textbf{Capacidad de absorber picos de demanda sin degradar el servicio:}
+en temporada alta o durante campañas puntuales, el volumen de solicitudes puede
+multiplicarse sin que el equipo comercial crezca en la misma proporción. Al no depender
+de que un comercial investigue cada propuesta desde cero, el mismo equipo puede atender
+un mayor número de clientes y ofrecer una primera respuesta rápida incluso durante los
+periodos de mayor carga.
+
+\item \textbf{Mayor conversión mediante una respuesta más rápida:}
+al recibir una propuesta mientras su necesidad de viaje continúa activa, y antes de que
+compare con otras agencias, el cliente podría tener una mayor probabilidad de cerrar la
+venta. Este efecto no se ha medido y no se cuantifica en el modelo de ahorro, por lo que
+debe interpretarse como una hipótesis de negocio pendiente de validación.
+
+\item \textbf{Fuente única de verdad:}
+la documentación de proveedores queda centralizada, procesada y disponible para su
+consulta en lenguaje natural, en lugar de permanecer dispersa entre documentos,
+correos electrónicos y carpetas compartidas.
+
+\item \textbf{Control humano en las decisiones comerciales:}
+el sistema propone distintas alternativas, pero es el profesional quien selecciona los
+precios y revisa la propuesta antes de utilizarla o enviarla al cliente. De esta forma se
+evita automatizar completamente decisiones con impacto comercial directo.
+
 \end{itemize}
 
 \TFMAnnexSection{Una Fuente Única de Verdad}
-Uno de los efectos colaterales más relevantes del proyecto, más allá de la generación de la propuesta en sí, es que obliga a consolidar toda la documentación de proveedores en un único repositorio indexado y consultable. Esto elimina el problema habitual de varias versiones del mismo tarifario circulando por distintos correos y carpetas, y hace que cualquier miembro del equipo (no solo quien recibió originalmente el documento)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     pueda acceder a la misma información actualizada. Además, al fundamentar cada respuesta en fragmentos concretos de la documentación (Capítulo 4), el sistema conserva la trazabilidad de qué fuente respalda cada dato de la propuesta, algo que un proceso manual basado en la memoria de cada empleado no puede garantizar.
+
+Uno de los efectos relevantes del proyecto, más allá de la generación de propuestas, es
+que obliga a consolidar la documentación de proveedores en un repositorio indexado y
+consultable.
+
+Esto reduce el problema habitual de mantener varias versiones de un mismo tarifario en
+correos electrónicos o carpetas diferentes y permite que cualquier miembro del equipo,
+no solo la persona que recibió originalmente el documento, pueda acceder a la misma
+información.
+
+Además, al fundamentar las respuestas en fragmentos concretos de la documentación
+(Capítulo~4), el sistema permite conservar la trazabilidad de las fuentes utilizadas para
+construir cada propuesta.
 
 \TFMAnnexSection{Modelo de Ahorro de Tiempo y ROI}
-La Tabla \ref{tab:roi-supuestos} recoge un modelo paramétrico sencillo para estimar el ahorro económico mensual. Los cuatro parámetros de la tabla dependen de cada agencia (tiempo manual, coste laboral y volumen de propuestas) y siguen siendo un ejemplo ilustrativo que debe sustituirse por datos reales de la agencia; el resto de esta sección, en cambio, incorpora datos reales de coste y latencia medidos sobre el sistema en producción (Capítulo~5).
+
+La Tabla~\ref{tab:roi-supuestos} presenta un modelo paramétrico sencillo para estimar el
+ahorro económico mensual.
+
+Los parámetros dependen de cada agencia --tiempo dedicado actualmente a elaborar una
+propuesta, tiempo de revisión asistida, coste laboral y volumen mensual-- y constituyen
+un ejemplo ilustrativo que debe sustituirse por datos reales. El resto de esta sección
+incorpora los datos de coste y latencia obtenidos durante la evaluación del sistema
+(Capítulo~5).
 
 \begin{table}[h!]
 \centering
 \begin{tabular}{@{}p{2.2cm}p{8cm}p{3.5cm}@{}}
 \toprule
-\textbf{Variable} & \textbf{Descripción} & \textbf{Valor ilustrativo} \\
+\textbf{Variable}
+&
+\textbf{Descripción}
+&
+\textbf{Valor ilustrativo}
+\\
 \midrule
-$T_{\text{manual}}$ & Horas dedicadas hoy a preparar una propuesta a mano & 4,0 h \\
-$T_{\text{asistida}}$ & Horas dedicadas a revisar y ajustar la propuesta generada por el sistema & 0,5 h \\
-$C_{\text{hora}}$ & Coste laboral cargado por hora de un comercial & 25 €/h \\
-$N$ & Propuestas generadas al mes & 25 \\
+
+$T_{\text{manual}}$
+&
+Horas dedicadas actualmente a preparar una propuesta de forma manual
+&
+4,0~h
+\\
+
+$T_{\text{asistida}}$
+&
+Horas dedicadas a revisar y ajustar la propuesta generada por el sistema
+&
+0,5~h
+\\
+
+$C_{\text{hora}}$
+&
+Coste laboral cargado por hora de un comercial
+&
+25~€/h
+\\
+
+$N$
+&
+Número de propuestas generadas al mes
+&
+25
+\\
+
 \bottomrule
 \end{tabular}
 \caption{Supuestos ilustrativos del modelo de ahorro de tiempo.}
 \label{tab:roi-supuestos}
 \end{table}
 
-A partir de estos supuestos, el ahorro de tiempo y el ahorro económico mensual se calculan como:
+A partir de estos supuestos, el ahorro mensual de tiempo se calcula mediante la siguiente
+expresión:
 
 \[
-\text{Ahorro de tiempo (h/mes)} = N \times (T_{\text{manual}} - T_{\text{asistida}})
+\text{Ahorro de tiempo (h/mes)}
+=
+N
+\times
+\left(
+T_{\text{manual}}
+-
+T_{\text{asistida}}
+\right)
 \]
+
+El ahorro económico mensual se obtiene multiplicando las horas liberadas por el coste
+laboral por hora:
+
 \[
-\text{Ahorro económico (€/mes)} = N \times (T_{\text{manual}} - T_{\text{asistida}}) \times C_{\text{hora}}
+\text{Ahorro económico (€/mes)}
+=
+N
+\times
+\left(
+T_{\text{manual}}
+-
+T_{\text{asistida}}
+\right)
+\times
+C_{\text{hora}}
 \]
 
-Con los valores ilustrativos de la Tabla \ref{tab:roi-supuestos}, cada propuesta libera 3,5~h de tiempo comercial (4,0~h manuales frente a 0,5~h de revisión asistida). El valor de $T_{\text{asistida}}$ resulta holgado frente al dato real: sobre las 14~conversaciones reales que completaron un flyer (Capítulo~5), el propio sistema tarda una mediana de solo 166~s (2,8~minutos) en generar el borrador, por lo que dentro de esa media hora quedan más de 27~minutos disponibles para que el comercial revise, ajuste precios y decida sin sentirse presionado por el tiempo.
+Con los valores ilustrativos de la Tabla~\ref{tab:roi-supuestos}, cada propuesta libera
+3,5~h de tiempo comercial, al comparar las 4,0~h de elaboración manual con las 0,5~h de
+revisión asistida.
 
-Para un único comercial que genera 25~propuestas al mes, esto supone 87,5~h/mes liberadas, equivalentes a 2.187,5~€/mes (26.250~€/año). La Tabla~\ref{tab:roi-escalado} extrapola esta misma cifra por comercial a una oficina de tamaño medio (3~comerciales) y a un equipo comercial de mayor tamaño (100~comerciales, propio de una cadena o franquicia con varias oficinas).
+El valor asignado a $T_{\text{asistida}}$ resulta holgado respecto al tiempo de ejecución
+medido. Sobre las 14~conversaciones que completaron una propuesta, el sistema registró
+una mediana de 166~s, equivalente a 2,8~minutos, para generar el borrador
+(Capítulo~5). Por tanto, dentro de la media hora estimada quedan más de 27~minutos para
+que el profesional revise el contenido, ajuste precios y tome la decisión final.
+
+Para un comercial que genere 25~propuestas al mes, el modelo estima una liberación de
+87,5~h mensuales, equivalentes a 2.187,5~€ al mes y 26.250~€ al año.
+
+La Tabla~\ref{tab:roi-escalado} extrapola estas cifras a una oficina de tamaño medio con
+tres comerciales y a un equipo comercial de mayor tamaño compuesto por cien
+profesionales.
 
 \begin{table}[h!]
 \centering
 \begin{tabular}{@{}lrrr@{}}
 \toprule
-& \textbf{1 comercial} & \textbf{Oficina (3 comerciales)} & \textbf{Equipo (100 comerciales)} \\
+&
+\textbf{1 comercial}
+&
+\textbf{Oficina}
+&
+\textbf{Equipo}
+\\
+
+&
+&
+\textbf{3 comerciales}
+&
+\textbf{100 comerciales}
+\\
 \midrule
-Propuestas/mes & 25 & 75 & 2\,500 \\
-Ahorro mensual & 2\,187,5 € & 6\,562,5 € & 218\,750 € \\
-Ahorro anual & 26\,250 € & 78\,750 € & 2\,625\,000 € \\
-Coste operativo mensual real & 3,2 \$ & 9,6 \$ & 320 \$ \\
+
+Propuestas/mes
+&
+25
+&
+75
+&
+2\,500
+\\
+
+Ahorro mensual
+&
+2\,187,5~€
+&
+6\,562,5~€
+&
+218\,750~€
+\\
+
+Ahorro anual
+&
+26\,250~€
+&
+78\,750~€
+&
+2\,625\,000~€
+\\
+
+Coste operativo mensual
+&
+3,2~\$
+&
+9,6~\$
+&
+320~\$
+\\
+
 \bottomrule
 \end{tabular}
-\caption{Escalado del ahorro estimado según el tamaño del equipo comercial. El ahorro por comercial usa los valores ilustrativos de la Tabla~\ref{tab:roi-supuestos}; el coste operativo usa el coste medio real por flyer medido en producción (0,128~\$, Capítulo~5).}
+
+\caption{Escalado del ahorro estimado según el tamaño del equipo comercial. El ahorro
+por comercial utiliza los valores ilustrativos de la
+Tabla~\ref{tab:roi-supuestos}. El coste operativo se calcula utilizando el coste medio
+medido de 0,128~\$ por propuesta completa (Capítulo~5).}
+
 \label{tab:roi-escalado}
 \end{table}
 
-Como muestra la última fila de la Tabla~\ref{tab:roi-escalado}, el coste operativo real del sistema --calculado como $N \times$ Coste medio por flyer, con el coste medio de 0,128~\$ medido sobre las 14~conversaciones reales que completaron un flyer (Capítulo~5; cifra facturada en dólares por los proveedores de modelos de lenguaje, frente al ahorro laboral expresado en euros)-- permanece marginal incluso al escalar a un equipo de 100 comerciales: apenas 320~\$/mes frente a un ahorro bruto de 218.750~€/mes. Como se detalla en la estructura de costes (más abajo), al no exigir inversión inicial este ahorro se traduce en un retorno prácticamente inmediato desde el primer mes de uso, a cualquier escala de equipo comercial.
+Como muestra la última fila de la Tabla~\ref{tab:roi-escalado}, el coste operativo se
+calcula mediante la expresión
+$N \times \text{coste medio por propuesta}$, utilizando el coste medio medido de
+0,128~\$ sobre las 14~conversaciones que completaron una propuesta.
 
-Estas cifras tampoco incluyen el efecto sobre la tasa de conversión de cada propuesta: al reducir drásticamente el tiempo de respuesta al cliente, la propuesta llega mientras su necesidad de viaje sigue siendo urgente y antes de que compare con otras agencias, lo que razonablemente debería traducirse en una tasa de cierre más alta que con el proceso manual. Este efecto no se ha medido y no se incluye en los cálculos anteriores, por lo que el ahorro presentado debe interpretarse como un suelo conservador del impacto económico real y no como su límite superior.
+Incluso al extrapolar el modelo a un equipo de cien comerciales, el coste estimado sería
+de aproximadamente 320~\$/mes, frente a un ahorro laboral bruto ilustrativo de
+218.750~€/mes.
+
+Debe tenerse en cuenta que las cifras de ahorro se expresan en euros, mientras que los
+proveedores de modelos de lenguaje facturan el consumo en dólares. Esta comparación
+tiene únicamente una finalidad orientativa y no incorpora posibles variaciones del tipo
+de cambio, costes de mantenimiento, soporte, desarrollo evolutivo ni otros gastos
+necesarios para operar el sistema como producto.
+
+Las cifras tampoco incluyen el posible efecto sobre la tasa de conversión. Al reducir el
+tiempo de respuesta, la propuesta puede llegar al cliente antes de que pierda interés o
+compare con otras agencias. Este efecto no se ha medido y no forma parte de los cálculos
+anteriores, por lo que debe validarse mediante una prueba con usuarios y datos reales.
 
 \TFMAnnexSection{Métricas Clave para el Posicionamiento Comercial}
-Para presentar el sistema a un cliente o patrocinador, y para su seguimiento posterior una vez en uso, se proponen las siguientes métricas:
 
-\begin{tfmbullets}
-\item \textbf{Tiempo medio hasta la primera propuesta} (\textit{time-to-first-draft}): medido en producción sobre 14~flyers completos, 166~s de mediana (2,8~minutos), con un percentil~99 de 22~minutos (Capítulo~5).
-\item \textbf{Horas comerciales liberadas al mes}, calculadas con el modelo de la sección anterior a partir de datos reales de uso.
-\item \textbf{Coste medio por propuesta generada}: medido en producción, 0,128~\$ por flyer completo, incluyendo el coste de los servicios cloud y de los modelos de lenguaje utilizados (Capítulo~5).
-\item \textbf{Tasa de aprobación directa}: porcentaje de propuestas aprobadas sin necesidad de corrección en el punto de revisión humana, frente a las que requieren ajustes.
-\item \textbf{Grado de fundamentación documental}: porcentaje de afirmaciones de la propuesta trazables a un fragmento concreto de la documentación de proveedores, como indicador de calidad y de riesgo de alucinación. Como proxy inicial, la evaluación LLM-as-judge realizada sobre 15~itinerarios puntúa la ausencia de datos inventados en 4,60/5 (Capítulo~5).
-\item \textbf{Cobertura documental}: número de destinos y proveedores con documentación indexada y disponible para consulta.
-\item \textbf{Tiempo de respuesta al cliente final}, como métrica indirecta de negocio a la que contribuye el sistema, aunque no la controle de forma directa (una propuesta más rápida mejora la probabilidad de cierre frente a la competencia).
-\end{tfmbullets}
+Para presentar el sistema a un cliente o patrocinador, así como para realizar su
+seguimiento posterior, se proponen las siguientes métricas:
+
+\begin{itemize}
+
+\item \textbf{Tiempo hasta la primera propuesta
+(\textit{time-to-first-draft}):}
+sobre las 14~propuestas completas analizadas, el sistema registró una mediana de
+166~s, equivalente a 2,8~minutos, y un percentil~99 de 22~minutos
+(Capítulo~5).
+
+\item \textbf{Horas comerciales liberadas al mes:}
+se calculan utilizando el volumen de propuestas, el tiempo medio empleado actualmente
+en su elaboración manual y el tiempo dedicado a revisar la propuesta generada.
+
+\item \textbf{Coste medio por propuesta generada:}
+el coste medio medido fue de 0,128~\$ por propuesta completa, incluyendo el consumo de
+los servicios cloud y de los modelos de lenguaje utilizados (Capítulo~5).
+
+\item \textbf{Tasa de aprobación directa:}
+porcentaje de propuestas aprobadas sin necesidad de correcciones en el punto de revisión
+humana, frente a aquellas que requieren modificaciones adicionales.
+
+\item \textbf{Grado de fundamentación documental:}
+porcentaje de afirmaciones de la propuesta que pueden vincularse a fragmentos concretos
+de la documentación de proveedores. Como aproximación inicial, la evaluación
+\textit{LLM-as-judge} realizada sobre 15~itinerarios otorgó una puntuación de
+4,60 sobre 5 en ausencia de datos inventados (Capítulo~5).
+
+\item \textbf{Cobertura documental:}
+número de destinos, proveedores y documentos cuya información se encuentra procesada,
+indexada y disponible para su consulta.
+
+\item \textbf{Tiempo de respuesta al cliente final:}
+métrica indirecta de negocio que mide el tiempo transcurrido entre la solicitud del
+cliente y la entrega de una propuesta revisada por el profesional.
+
+\end{itemize}
 
 \TFMAnnexSection{Estructura de Costes}
-El sistema se apoya en servicios cloud de pago por uso (almacenamiento, funciones sin servidor, base de datos y búsqueda vectorial, descritos en el Capítulo 3) y en el consumo de modelos de lenguaje facturado por uso. Esto evita una inversión inicial en infraestructura y hace que el coste de operación sea proporcional al volumen real de documentos procesados y propuestas generadas, una estructura de coste favorable para validar el proyecto con un volumen de uso creciente antes de comprometer una inversión mayor.
+
+El sistema se apoya en servicios cloud de pago por uso, incluyendo almacenamiento,
+funciones sin servidor, base de datos, búsqueda vectorial y consumo de modelos de
+lenguaje.
+
+Este modelo evita una inversión inicial elevada en infraestructura y permite que una
+parte del coste operativo sea proporcional al volumen de documentos procesados y de
+propuestas generadas.
+
+No obstante, el paso de la prueba de concepto a un producto comercial requeriría incluir
+otros costes no contemplados en las mediciones actuales, como mantenimiento,
+monitorización, soporte, evolución del software, seguridad, copias de respaldo,
+protección de datos y atención a incidencias.
 
 \TFMAnnexSection{Riesgos para el Caso de Negocio}
-Antes de un despliegue con clientes reales, el caso de negocio debe incorporar el coste de cerrar los puntos señalados en el Capítulo 7 de esta memoria: una revisión de seguridad (control de acceso, gestión de credenciales), el cumplimiento normativo en materia de protección de datos de clientes y proveedores, y una validación de que el contenido generado no introduce información no fundamentada en las propuestas enviadas a clientes finales.
+
+Antes de realizar un despliegue con clientes reales, el caso de negocio debe incorporar
+el coste de resolver los riesgos y limitaciones identificados en esta memoria.
+
+Entre ellos se encuentran el refuerzo del control de acceso, la gestión segura de
+credenciales, el cumplimiento normativo en materia de protección de datos y la
+validación sistemática de que el contenido generado no introduce información no
+fundamentada.
+
+También debe considerarse que los precios y la disponibilidad de vuelos y alojamientos
+pueden cambiar entre el momento de la consulta y el momento de la contratación. Por
+este motivo, la propuesta generada debe ser revisada por un profesional antes de
+presentarse al cliente.
 
 \TFMAnnexSection{Hoja de Ruta hacia Producción}
-Tal como se detalla en el Capítulo 8, el paso de esta prueba de concepto a un producto comercial requiere completar una evaluación formal con métricas y usuarios reales, reforzar la seguridad de cara a producción, y resolver la deuda técnica identificada durante el desarrollo. Estos pasos deben incorporarse como condiciones previas en cualquier propuesta comercial basada en este proyecto, no como mejoras opcionales posteriores.
+
+Como se detalla en el Capítulo~8, el paso de esta prueba de concepto a un producto
+comercial requiere completar una evaluación formal con usuarios reales, reforzar la
+seguridad de la infraestructura y resolver la deuda técnica identificada durante el
+desarrollo.
+
+También sería necesario sustituir las credenciales configuradas mediante variables de
+entorno por mecanismos de identidad administrada, desplegar una solución de
+persistencia duradera para los puntos de control del grafo, incorporar infraestructura
+como código y establecer procesos de monitorización, copias de seguridad y recuperación
+ante fallos.
+
+Estos pasos deben considerarse condiciones previas para un despliegue productivo y no
+mejoras opcionales posteriores.
 
 \TFMAnnexSection{Conclusión}
-El proyecto demuestra que es posible reducir de forma significativa el tiempo dedicado a la elaboración de propuestas de viaje sin eliminar la supervisión profesional en las decisiones comerciales. El modelo de ahorro presentado en este anexo debe alimentarse con datos reales de la agencia --tiempos actuales, coste laboral y volumen de propuestas-- para convertirse en un caso de negocio cuantificado y defendible ante un cliente o patrocinador real.
+
+El proyecto demuestra que es posible reducir de forma significativa el tiempo dedicado
+a la elaboración de propuestas de viaje sin eliminar la supervisión profesional en las
+decisiones comerciales.
+
+El modelo de ahorro presentado en este anexo debe alimentarse con datos reales de cada
+agencia --tiempos actuales, coste laboral y volumen de propuestas-- para convertirse en
+un caso de negocio cuantificado y defendible ante un cliente o patrocinador.
+
+Por tanto, las cifras presentadas no deben interpretarse como una previsión financiera
+garantizada, sino como un modelo inicial que permite estimar el impacto potencial de la
+solución y orientar una futura validación con datos reales.
