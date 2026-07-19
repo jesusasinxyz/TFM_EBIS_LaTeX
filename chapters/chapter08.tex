@@ -2,11 +2,24 @@
 \TFMChapter{Conclusiones y Trabajo Futuro}
 
 \TFMSection{Conclusiones}
-Retomando los objetivos específicos planteados en el Capítulo 1, puede concluirse que la prueba de concepto desarrollada los cubre en su práctica totalidad. Se ha implementado una interfaz conversacional funcional, un pipeline serverless de procesamiento documental que extrae y normaliza automáticamente la información de los documentos de proveedores, un sistema RAG capaz de fundamentar sus respuestas en dicha documentación, una arquitectura multiagente que coordina la recopilación de requisitos, la consulta de información y precios, la elaboración del itinerario y la generación de la propuesta comercial, una integración con fuentes externas de precios en tiempo real, una API que conecta todos los componentes, la generación automática de contenido visual asociado al destino, y un despliegue completo sobre infraestructura cloud gestionada.
+Retomando los objetivos planteados en el Capítulo 1, el proyecto los cubre en su práctica totalidad, con la evaluación formal de usuarios como principal excepción (Capítulo 6). Más allá de ese balance formal, el desarrollo y la puesta en producción del sistema dejan las siguientes conclusiones y confirman varios puntos fuertes del trabajo realizado.
 
-El objetivo de pruebas y validación es el que se cumple de forma más parcial: existe una suite de pruebas automatizadas que cubre de forma razonable la lógica de los agentes, la API y el pipeline documental, pero, como se ha señalado en el Capítulo 6, todavía falta una evaluación sistemática con métricas cuantitativas y una validación con usuarios reales, quedando ambas como trabajo futuro inmediato.
+\textbf{Conclusiones principales:}
+\begin{tfmbullets}
+\item Es viable combinar procesamiento documental inteligente, RAG y una arquitectura multiagente con puntos de control humano para automatizar buena parte del trabajo repetitivo de una agencia de viajes, sin eliminar la supervisión profesional en las decisiones con impacto comercial.
+\item Los dos puntos obligatorios de interacción humana en el bucle --selección de precios y revisión final-- son la pieza que hace el sistema utilizable en un contexto real: el sistema propone y acelera, pero no decide por sí solo.
+\item La calidad de una propuesta generada depende más de la disponibilidad de documentación para ese destino que de la capacidad del modelo de lenguaje utilizado (Capítulo 5), lo que sitúa la cobertura documental como la palanca de mejora más directa, por delante de cambiar de modelo.
+\item El objetivo de pruebas y validación es el que se cumple de forma más parcial: la suite automatizada cubre razonablemente agentes, API y pipeline documental, pero falta una evaluación cuantitativa sistemática y una validación con usuarios reales (Capítulo 6), quedando ambas como trabajo futuro inmediato.
+\end{tfmbullets}
 
-Más allá del cumplimiento formal de objetivos, el resultado más relevante del proyecto es haber comprobado que es viable combinar procesamiento documental inteligente, recuperación aumentada por generación y una arquitectura multiagente con puntos de control humano, para automatizar buena parte del trabajo repetitivo de una agencia de viajes sin eliminar la supervisión profesional en las decisiones con impacto comercial. El diseño de dos puntos obligatorios de interacción humana en el bucle —selección de precios y revisión final— ha resultado ser la pieza que hace que el sistema sea utilizable en un contexto real: el sistema propone y acelera, pero no decide por sí solo.
+\textbf{Puntos fuertes del trabajo:}
+\begin{tfmbullets}
+\item Un sistema funcional de extremo a extremo, no solo un prototipo parcial: desde la carga de un PDF de un proveedor hasta la propuesta comercial final en PPTX, pasando por indexación, recuperación, precios e itinerario.
+\item Evaluación sobre uso real del sistema, no solo sobre pruebas de laboratorio: 51~trazas y 21~conversaciones reales recogidas en producción (Capítulo 5), que fundamentan tanto el análisis de coste y rendimiento como la evaluación de calidad.
+\item Baja tasa de alucinación medida: 4,60/5 en el criterio de ausencia de datos inventados sobre 15~itinerarios evaluados mediante LLM-as-judge (Capítulo 5).
+\item Selección de modelo por tarea que mantiene el coste operativo marginal --0,128~\$ por propuesta completa (Capítulo 5)-- frente al ahorro de tiempo comercial que representa (Anexo 1).
+\item Tratamiento honesto de las limitaciones y riesgos del sistema (Capítulo 7), en lugar de presentarlo como una solución cerrada y sin matices.
+\end{tfmbullets}
 
 \TFMSection{Trabajo Futuro}
 A partir del análisis realizado en los capítulos anteriores, se identifican las siguientes líneas de trabajo futuro, ordenadas de mayor a menor prioridad para una eventual evolución de la prueba de concepto hacia un producto real:
