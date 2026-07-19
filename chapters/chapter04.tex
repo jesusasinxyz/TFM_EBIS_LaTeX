@@ -232,7 +232,7 @@ Cada agente utiliza el modelo de lenguaje más adecuado a su tarea, atendiendo a
 La información disponible en la base documental no siempre incluye precios actualizados
 de vuelos y alojamientos. Por este motivo, el agente de precios se integra con SearchAPI,
 un servicio externo que permite consultar los resultados de Google Flights y Google
-Hotels mediante una API REST \parencite{searchapiFlights,searchapiHotels}.
+Hotels mediante una API REST \parencite{searchapi2026flights,searchapi2026hotels}.
 
 Para la búsqueda de vuelos se realizan dos consultas independientes: una para el trayecto
 de ida y otra para el de vuelta. Ambas peticiones se ejecutan en paralelo, reduciendo el
@@ -251,7 +251,7 @@ multiagente.
 Durante el desarrollo se estudió inicialmente la integración con las API de Amadeus a
 través de un servidor MCP. Sin embargo, esta alternativa se descartó debido a los cambios
 en la disponibilidad de su plataforma Self-Service y a la imposibilidad de mantener un
-acceso gratuito adecuado para la prueba de concepto \parencite{amadeusSelfService}.
+acceso gratuito adecuado para la prueba de concepto \parencite{amadeus2026developers}.
 Por ello, se optó por SearchAPI, que permitió completar la integración de vuelos y
 alojamientos con una menor complejidad de acceso.
 
