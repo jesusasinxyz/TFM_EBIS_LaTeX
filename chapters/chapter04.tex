@@ -264,71 +264,57 @@ como un punto obligatorio de intervención humana.
 La API de persistencia expone los servicios necesarios para que la interfaz y el pipeline documental compartan una única fuente de verdad: autenticación de usuarios, alta y consulta de metadatos documentales, y alta, consulta y actualización del estado de las propuestas. El acceso de los usuarios finales se protege mediante un token de sesión, mientras que el pipeline documental se autentica con una cuenta de servicio independiente, de forma que las credenciales de un empleado nunca se comparten con procesos automáticos internos. Una propuesta solo puede modificarse por la persona que la creó, aunque su consulta desde el histórico está abierta a cualquier usuario autenticado, en línea con el uso compartido que hace de la herramienta un equipo comercial.
 
 \TFMSection{Implementación del frontend}
-La interfaz se ha construido como una aplicación conversacional sencilla, con dos pantallas: una de conversación, donde el profesional describe el viaje, ve la respuesta del sistema en tiempo real y toma las dos decisiones clave del proceso (selección de precios y revisión final de la propuesta); y otra de histórico, donde puede consultar, descargar o retomar cualquier propuesta generada anteriormente. Este diseño permite que un empleado sin conocimientos técnicos utilice un sistema multiagente complejo sin necesidad de entender su funcionamiento interno, a través de una conversación y de dos puntos de decisión claramente señalados.
 
-El acceso a ambas pantallas queda protegido por la autenticación descrita en la sección anterior. La Figura~\ref{fig:frontend-login} muestra la pantalla de inicio de sesión, previa a cualquier otra funcionalidad.
+La interfaz se ha desarrollado en Streamlit como una aplicación conversacional orientada
+al personal interno de una agencia de viajes. Su objetivo es ocultar la complejidad del
+sistema multiagente y presentar al profesional únicamente la información y las decisiones
+necesarias en cada fase del proceso.
 
-\begin{figure}[H]
-    \centering
-    \makebox[\textwidth][c]{%
-        \includegraphics[
-            width=1.2\textwidth,,
-            clip
-        ]{assets/frontend_login.png}
-    }
-    \caption{Pantalla de inicio de sesión del frontend.}
-    \label{fig:frontend-login}
-\end{figure}
+La aplicación se organiza en dos vistas principales. La primera corresponde a la pantalla
+de conversación, desde la que el usuario describe el viaje en lenguaje natural y recibe
+las respuestas generadas por el sistema. A partir de esta interacción, el agente
+orquestador extrae los parámetros necesarios y activa el resto de componentes del flujo.
+La segunda vista corresponde al histórico de propuestas, donde se muestran los viajes
+generados por el equipo, su estado y la información asociada a cada uno.
 
-Tras autenticarse, el profesional llega por defecto a la pantalla de conversación (Figura~\ref{fig:frontend-orchestrator-vacio}), donde un único campo de texto invita a describir el viaje en lenguaje natural. La Figura~\ref{fig:frontend-orchestrator-prompt} muestra un ejemplo real de petición introducida por el usuario, que el agente orquestador (Sección~4.5) interpreta para extraer cliente, origen, destino, fechas e intereses antes de activar al resto de agentes.
+El acceso a la aplicación está protegido mediante autenticación. Tras iniciar sesión, el
+usuario puede iniciar una nueva conversación, consultar propuestas anteriores, retomar
+un borrador o descargar una propuesta generada en formato PPTX. Las capturas de la
+pantalla de inicio de sesión, la vista inicial de conversación y un ejemplo de petición
+pueden consultarse en las Figuras~\ref{fig:manual-login},
+\ref{fig:manual-orchestrator-vacio} y
+\ref{fig:manual-orchestrator-prompt} del
+Anexo~\ref{anexo:manual-aplicacion}.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=1\textwidth]{assets/image.PNG}
-\caption{Pantalla de conversación (Orchestrator) al iniciar una sesión.}
-\label{fig:frontend-orchestrator-vacio}
-\end{figure}
+La pantalla de histórico presenta en formato tabular los principales datos de cada
+propuesta, como el cliente, el origen, el destino, las fechas, los intereses, el estado y
+el usuario que la creó. Al seleccionar una propuesta, la interfaz muestra su contenido
+y permite descargar el documento, continuar su edición o recuperar un borrador
+existente. Esta funcionalidad se muestra en las
+Figuras~\ref{fig:manual-dashboard} y
+\ref{fig:manual-dashboard-detalle} del
+Anexo~\ref{anexo:manual-aplicacion}.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=1\textwidth]{assets/frontend_orchestrator_prompt.png}
-\caption{Ejemplo de petición de un nuevo viaje introducida en lenguaje natural.}
-\label{fig:frontend-orchestrator-prompt}
-\end{figure}
+La interfaz implementa además los dos puntos de interacción humana definidos en el
+diseño del sistema. El primero se produce tras la consulta de precios, cuando se muestran
+las opciones de vuelos y alojamientos recuperadas para que el profesional seleccione
+manualmente las alternativas que desea incorporar a la propuesta. También se permite
+indicar que el cliente viajará por sus propios medios, evitando así incluir una opción de
+vuelo. Este paso se ilustra en la
+Figura~\ref{fig:manual-seleccion-precios} del
+Anexo~\ref{anexo:manual-aplicacion}.
 
-Una vez generada, cada propuesta queda disponible en la pantalla de histórico (Figura~\ref{fig:frontend-dashboard}), que resume en formato tabular el cliente, el origen, el destino, las fechas, los intereses, el estado, la persona del equipo que la creó (\textit{Owner}) y la fecha de creación de cada propuesta. Al seleccionar una propuesta de la lista, la interfaz despliega su contenido completo --itinerario día a día y desglose de precio-- (Figura~\ref{fig:frontend-dashboard-detalle}), desde donde el profesional puede descargarla en formato PPTX o enviarla de nuevo al sistema para iterar sobre ella.
+El segundo punto de revisión tiene lugar una vez generada la propuesta comercial. En
+esta fase, el profesional puede aprobarla, solicitar modificaciones mediante comentarios,
+descartarla o guardarla como borrador. Estas acciones actualizan el estado compartido
+del grafo y determinan la siguiente transición del flujo multiagente. La pantalla de
+revisión final se incluye en la
+Figura~\ref{fig:manual-revision-flyer} del
+Anexo~\ref{anexo:manual-aplicacion}.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=1\textwidth]{assets/frontend_dashboard.PNG}
-\caption{Pantalla de histórico (Dashboard) con las propuestas generadas por el equipo.}
-\label{fig:frontend-dashboard}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.85\textwidth]{assets/frontend_dashboard_detalle.png}
-\caption{Detalle de una propuesta: itinerario día a día y desglose de precio.}
-\label{fig:frontend-dashboard-detalle}
-\end{figure}
-
-Además de estas dos pantallas, el flujo se detiene en los dos puntos de interacción humana en el bucle descritos en la Sección~3.7. El primero ocurre tras la consulta de precios (Figura~\ref{fig:frontend-seleccion-precios}): la interfaz presenta las opciones de vuelo de ida y de vuelta, y de alojamiento, junto con su origen (documentación interna o SearchAPI), puntuación y puntos de interés cercanos al hotel, para que el profesional seleccione manualmente una opción de cada categoría antes de continuar; un checkbox adicional permite indicar que el cliente se desplazará por sus propios medios, omitiendo así la reserva de vuelo.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.95\textwidth]{assets/frontend_seleccion_precios.png}
-\caption{Selección manual de vuelos y hotel (primer punto de revisión humana).}
-\label{fig:frontend-seleccion-precios}
-\end{figure}
-
-El segundo punto de revisión ocurre tras generar la propuesta comercial completa (Figura~\ref{fig:frontend-revision-flyer}): la interfaz muestra el itinerario y el precio final ya integrados, y ofrece cuatro acciones explícitas --aprobar y publicar, rechazar indicando comentarios de corrección en un campo de texto libre, descartar o guardar como borrador-- que se corresponden directamente con los estados de revisión almacenados en el estado compartido del grafo (Sección~\ref{sec:impl-multiagente}).
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.85\textwidth]{assets/frontend_revision_flyer.png}
-\caption{Revisión final de la propuesta comercial (segundo punto de revisión humana).}
-\label{fig:frontend-revision-flyer}
-\end{figure}
+El detalle completo del funcionamiento de la interfaz, junto con las capturas de todas las
+pantallas y el flujo de uso paso a paso, se recoge en el
+Anexo~\ref{anexo:manual-aplicacion}.
 
 \TFMSection{Despliegue e Infraestructura en AWS}
 
