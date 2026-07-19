@@ -4,7 +4,7 @@
 \TFMSection{Introducción}
 Este capítulo presenta la evaluación empírica del sistema a partir de las trazas reales recogidas en LangSmith durante las ejecuciones del proyecto \texttt{tfm-ebis}. La plataforma de observabilidad (Sección~4.7) captura automáticamente latencia, tokens, coste, modelo y agente responsable de cada ejecución sin instrumentación adicional, y sobre estos datos se construyen las métricas de rendimiento, recuperación y calidad que siguen.
 
-El conjunto de evaluación son 51~trazas reales correspondientes a 21~conversaciones de generación de folletos con destinos y clientes distintos; como el grafo se interrumpe en cada punto de revisión humana, una misma conversación produce varias trazas (una por turno), y de las 21, 14~completaron el flyer íntegro y 7~se detuvieron en un punto intermedio. Todas proceden de uso real del sistema en producción, extraídas mediante un script reproducible (\texttt{scripts/extract\_metrics.py}).
+El conjunto de evaluación son 51~trazas reales correspondientes a 21~conversaciones de generación de folletos con destinos y clientes distintos; como el grafo se interrumpe en cada punto de revisión humana, una misma conversación produce varias trazas (una por turno), y de las 21, 14~completaron el flyer íntegro y 7~se detuvieron en un punto intermedio por decisión humana. Todas proceden de uso real del sistema en producción, extraídas mediante un script reproducible (\texttt{scripts/extract\_metrics.py}).
 
 \TFMSection{Metodología de evaluación}
 \label{sec:metodologia}
@@ -37,7 +37,7 @@ El agente de información recupera fragmentos de la base de conocimientos median
 \item \textbf{Puntuación de similitud:} media de 0{,}665, mediana de 0{,}657, mínimo de 0{,}577 y máximo de 0{,}797.
 \end{tfmbullets}
 
-La Figura~\ref{fig:rag-histogram} muestra la distribución de las puntuaciones: la mayoría se concentra en el rango 0{,}60--0{,}70 (relevancia moderada pero consistente) y ninguna cae por debajo del umbral mínimo de 0{,}577, lo que confirma que el filtro descarta correctamente los fragmentos poco relevantes.
+La Figura~\ref{fig:rag-histogram} muestra la distribución de las puntuaciones: la mayoría se concentra en el rango 0{,}60--0{,}70 (relevancia moderada pero consistente) y ninguna cae por debajo del umbral mínimo de 0{,}6, lo que confirma que el filtro descarta correctamente los fragmentos poco relevantes.
 
 \begin{figure}[htbp]
 \centering
