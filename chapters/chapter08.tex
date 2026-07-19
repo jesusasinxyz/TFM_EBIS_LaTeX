@@ -1,3 +1,4 @@
+```latex
 \clearpage\thispagestyle{empty}\null\clearpage
 \TFMChapter{Conclusiones y Trabajo Futuro}
 
@@ -5,21 +6,21 @@
 Retomando los objetivos planteados en el Capítulo 1, el proyecto los cubre en su práctica totalidad, con la evaluación formal de usuarios como principal excepción (Capítulo 6). Más allá de ese balance formal, el desarrollo y la puesta en producción del sistema dejan las siguientes conclusiones y confirman varios puntos fuertes del trabajo realizado.
 
 \textbf{Conclusiones principales:}
-\begin{tfmbullets}
+\begin{itemize}
 \item Es viable combinar procesamiento documental inteligente, RAG y una arquitectura multiagente con puntos de control humano para automatizar buena parte del trabajo repetitivo de una agencia de viajes, sin eliminar la supervisión profesional en las decisiones con impacto comercial.
 \item Los dos puntos obligatorios de interacción humana en el bucle --selección de precios y revisión final-- son la pieza que hace el sistema utilizable en un contexto real: el sistema propone y acelera, pero no decide por sí solo.
 \item La calidad de una propuesta generada depende más de la disponibilidad de documentación para ese destino que de la capacidad del modelo de lenguaje utilizado (Capítulo 5), lo que sitúa la cobertura documental como la palanca de mejora más directa, por delante de cambiar de modelo.
 \item El objetivo de pruebas y validación es el que se cumple de forma más parcial: la suite automatizada cubre razonablemente agentes, API y pipeline documental, pero falta una evaluación cuantitativa sistemática y una validación con usuarios reales (Capítulo 6), quedando ambas como trabajo futuro inmediato.
-\end{tfmbullets}
+\end{itemize}
 
 \textbf{Puntos fuertes del trabajo:}
-\begin{tfmbullets}
+\begin{itemize}
 \item Un sistema funcional de extremo a extremo, no solo un prototipo parcial: desde la carga de un PDF de un proveedor hasta la propuesta comercial final en PPTX, pasando por indexación, recuperación, precios e itinerario.
 \item Evaluación sobre uso real del sistema, no solo sobre pruebas de laboratorio: 51~trazas y 21~conversaciones reales recogidas en producción (Capítulo 5), que fundamentan tanto el análisis de coste y rendimiento como la evaluación de calidad.
 \item Baja tasa de alucinación medida: 4,60/5 en el criterio de ausencia de datos inventados sobre 15~itinerarios evaluados mediante LLM-as-judge (Capítulo 5).
 \item Selección de modelo por tarea que mantiene el coste operativo marginal --0,128~\$ por propuesta completa (Capítulo 5)-- frente al ahorro de tiempo comercial que representa (Anexo 1).
 \item Tratamiento honesto de las limitaciones y riesgos del sistema (Capítulo 7), en lugar de presentarlo como una solución cerrada y sin matices.
-\end{tfmbullets}
+\end{itemize}
 
 \TFMSection{Trabajo Futuro}
 A partir del análisis realizado en los capítulos anteriores, se identifican las siguientes líneas de trabajo futuro, ordenadas de mayor a menor prioridad para una eventual evolución de la prueba de concepto hacia un producto real:
@@ -33,3 +34,4 @@ A partir del análisis realizado en los capítulos anteriores, se identifican la
 \item \textbf{Saneamiento de deuda técnica identificada.} Eliminar o documentar explícitamente los agentes de una iteración anterior del diseño que ya no forman parte del grafo activo, unificar el modelo utilizado para el reconocimiento de documentos entre la fase de desarrollo y la de producción, y corregir las pruebas automatizadas desactualizadas detectadas en el Capítulo 6.
 \item \textbf{Ampliación de fuentes y proveedores.} Incorporar más proveedores de vuelos y alojamiento más allá del servicio externo actual, y ampliar la cobertura documental a más destinos y tipos de proveedor.
 \end{enumerate}
+```
