@@ -2,7 +2,7 @@
 \TFMChapter{Implementación}
 
 \TFMSection{Introducción}
-Mientras que el Capítulo 3 describía qué se ha diseñado y por qué, este capítulo describe cómo se ha construido cada componente de la solución. El objetivo de esta descripción no es únicamente documentar el código, sino explicar qué función cumple cada pieza dentro del proceso de generación de una propuesta de viaje y qué valor aporta al profesional que la utiliza: dónde se automatiza una tarea manual, dónde se reduce el riesgo de error o de información desactualizada, y dónde se mantiene deliberadamente el control humano.
+Mientras que el Capítulo 3 describía qué se ha diseñado y por qué, este capítulo describe cómo se ha construido cada componente: qué función cumple, qué tarea manual automatiza o riesgo reduce, y dónde se mantiene deliberadamente el control humano.
 
 \TFMSection{Estructura del Código}
 El proyecto se organiza como un monorepo con cuatro grandes bloques, correspondientes a los cuatro componentes descritos en el capítulo anterior:
@@ -31,30 +31,23 @@ scripts/aws-lambda/   Pipeline de procesamiento documental (AWS Lambda)
 templates/            Plantillas corporativas de la propuesta (PPTX)
 \end{verbatim}
 
-Esta organización mantiene separadas cuatro responsabilidades que, aunque colaboran para producir una única propuesta de viaje, tienen ciclos de vida y necesidades de despliegue distintas: el pipeline documental se ejecuta de forma asíncrona y esporádica (solo cuando se carga un documento nuevo), mientras que el orquestador y la interfaz atienden conversaciones en tiempo real, y la API de persistencia da servicio a ambos por igual.
+Aunque colaboran para producir una única propuesta, estas cuatro responsabilidades tienen ciclos de vida distintos: el pipeline documental se ejecuta de forma asíncrona y esporádica, el orquestador y la interfaz atienden conversaciones en tiempo real, y la API de persistencia da servicio a ambos.
 
 \TFMSection{Implementación del pipeline de procesamiento documental}
 
-El pipeline transforma automáticamente los documentos PDF proporcionados por los
-proveedores en contenido estructurado e indexado, preparado para su consulta mediante
-lenguaje natural. Se ha implementado siguiendo una arquitectura \textit{serverless} y
-orientada a eventos, de forma que el procesamiento comienza automáticamente cuando
-se incorpora un nuevo documento al repositorio de entrada.
+El pipeline transforma automáticamente los documentos PDF de los proveedores en
+contenido estructurado e indexado, consultable mediante lenguaje natural. Se ha
+implementado con una arquitectura \textit{serverless} orientada a eventos: una regla de
+Amazon EventBridge detecta la creación de objetos \texttt{.pdf} en el bucket de Amazon S3
+\texttt{tfm\_raw\_documents} e inicia una ejecución de AWS Step Functions con la
+referencia al documento cargado, de modo que el usuario solo debe depositar el PDF en
+el repositorio de entrada, sin iniciar nada manualmente.
 
-Para ello, se ha configurado una regla de Amazon EventBridge que detecta los eventos
-de creación de objetos con extensión \texttt{.pdf} en el bucket de Amazon S3
-\texttt{tfm\_raw\_documents}. Cuando se produce un evento que cumple estas condiciones,
-la regla inicia una ejecución de la máquina de estados de AWS Step Functions y le
-proporciona la referencia al bucket y a la clave del documento cargado. De este modo,
-el usuario únicamente debe depositar el PDF en el repositorio correspondiente, sin
-necesidad de iniciar manualmente ninguna función ni proceso adicional.
-
-La máquina de estados ejecuta secuencialmente tres funciones Lambda independientes:
-\texttt{PdfToImage}, \texttt{ImageToMarkdown} e
-\texttt{IndexDocumentEmbeddings}. Cada función conserva sus resultados en los
-servicios de almacenamiento o persistencia correspondientes y transmite a la siguiente
-etapa únicamente las referencias necesarias para continuar el procesamiento, evitando
-incluir los documentos completos en el estado del flujo.
+La máquina de estados ejecuta secuencialmente tres funciones Lambda independientes
+(\texttt{PdfToImage}, \texttt{ImageToMarkdown} e \texttt{IndexDocumentEmbeddings}), cada
+una de las cuales conserva sus resultados en el almacenamiento correspondiente y
+transmite a la siguiente etapa solo las referencias necesarias, sin incluir los
+documentos completos en el estado del flujo.
 
 \newpage
 La Figura~\ref{fig:step-functions-document-pipeline} muestra la orquestación del
@@ -71,77 +64,48 @@ pipeline y los servicios con los que interactúa cada función Lambda.
 \begin{tfmbullets}
 
 \item \textbf{\texttt{PdfToImage}.}
-La primera función recibe la referencia al documento PDF almacenado en Amazon S3 y
-renderiza cada una de sus páginas como una imagen de alta resolución mediante la
-librería PyMuPDF. Esta conversión permite conservar tablas, columnas, logotipos,
-precios y otros elementos visuales que podrían perderse mediante una extracción
-convencional de texto.
-
-Las imágenes resultantes se almacenan nuevamente en Amazon S3, dentro del repositorio
-destinado a las páginas procesadas, y sus claves se incorporan al estado de la ejecución
-para que puedan ser utilizadas por la siguiente etapa. Esta función interactúa, por
-tanto, principalmente con Amazon S3, desde donde obtiene el PDF original y donde
-almacena las imágenes generadas.
+Recibe el PDF de Amazon S3 y renderiza cada página como una imagen de alta resolución
+con PyMuPDF, conservando tablas, columnas, logotipos y precios que una extracción de
+texto convencional podría perder. Las imágenes se almacenan de nuevo en S3 y sus claves
+se incorporan al estado de la ejecución.
 
 \item \textbf{\texttt{ImageToMarkdown}.}
-La segunda función recupera de Amazon S3 las imágenes generadas y las procesa mediante
-un modelo multimodal con capacidad de visión. El modelo reconstruye el contenido del
-documento en formato Markdown, conservando su jerarquía de encabezados, tablas,
-condiciones comerciales, precios y demás información relevante.
-
-Cuando se detectan enlaces web dentro del documento, la función consulta dichas
-páginas e incorpora al Markdown la información complementaria obtenida mediante
-\textit{web scraping}. A continuación, se realiza la limpieza y normalización del
-contenido y se extraen de forma estructurada los metadatos del documento, como el
-destino, el proveedor, las actividades, los precios, las condiciones y los campos de
-accesibilidad.
-
-El proceso incluye reglas para normalizar topónimos con diferentes denominaciones y
-para evitar la generación de datos de contacto que no aparezcan explícitamente en las
-fuentes procesadas. El Markdown resultante se almacena en Amazon S3, mientras que los
-metadatos estructurados se envían a la API backend, que se encarga de persistirlos en
-Amazon DynamoDB.
-
-Esta función interactúa con Amazon S3, el proveedor del modelo multimodal, las páginas
-web referenciadas en el documento y la API de persistencia de la aplicación.
+Procesa cada imagen con un modelo multimodal que reconstruye el documento en formato
+Markdown, conservando encabezados, tablas, condiciones y precios; si detecta enlaces
+web, incorpora también esa información mediante \textit{web scraping}. A continuación
+normaliza el contenido y extrae de forma estructurada los metadatos (destino,
+proveedor, actividades, precios, condiciones, accesibilidad), incluyendo reglas para
+unificar topónimos con distinta denominación y para no generar datos de contacto que no
+aparezcan literalmente en el documento. El Markdown se almacena en S3 y los metadatos se
+envían a la API backend, que los persiste en DynamoDB.
 
 \item \textbf{\texttt{IndexDocumentEmbeddings}.}
-La última función recupera de Amazon S3 el Markdown normalizado y obtiene, cuando es
-necesario, los metadatos asociados al documento a través de la API backend. El contenido
-se divide en fragmentos de tamaño acotado, procurando mantener unidades de información
-suficientemente completas para su posterior recuperación.
-
-Para cada fragmento se genera una representación vectorial mediante el modelo Titan
-Text Embeddings de Amazon Bedrock. Los fragmentos, sus vectores y los metadatos
-relacionados con el destino y las actividades se indexan posteriormente en Amazon
-OpenSearch Serverless.
-
-Esta función interactúa con Amazon S3 para recuperar el contenido, con la API backend
-para consultar los metadatos, con Amazon Bedrock para generar los embeddings y con
-Amazon OpenSearch Serverless para almacenar los fragmentos indexados.
+Recupera el Markdown normalizado y sus metadatos, divide el contenido en fragmentos de
+tamaño acotado y genera una representación vectorial de cada uno mediante Titan Text
+Embeddings (Amazon Bedrock). Fragmentos, vectores y metadatos de destino y actividades
+se indexan en Amazon OpenSearch Serverless.
 
 \end{tfmbullets}
 
-AWS Step Functions controla el orden de ejecución y garantiza que cada función se
-inicie únicamente cuando la etapa anterior ha finalizado correctamente. La persistencia
-de los resultados intermedios en Amazon S3 desacopla las funciones y permite probar,
-actualizar o volver a ejecutar cada una de ellas de manera independiente.
-
-Una vez finalizada la función \texttt{IndexDocumentEmbeddings}, el contenido del
-documento queda disponible en Amazon OpenSearch Serverless para las consultas
-realizadas por el sistema RAG. De esta forma, el proceso completo, desde la carga del
-PDF hasta su disponibilidad para la recuperación semántica, se ejecuta automáticamente
-sin intervención manual.
+AWS Step Functions garantiza que cada función se inicie solo cuando la anterior ha
+finalizado correctamente, y la persistencia de resultados intermedios en S3 permite
+probar o reejecutar cada etapa de forma independiente. Al finalizar
+\texttt{IndexDocumentEmbeddings}, el documento queda disponible para el sistema RAG sin
+intervención manual desde la carga del PDF.
 
 \TFMSection{Implementación del sistema RAG}
 
-El sistema RAG permite fundamentar las respuestas en la documentación real de los
-proveedores, reduciendo el riesgo de generar información inventada, desactualizada o no relacionada con el destino solicitado.
+El sistema RAG fundamenta las respuestas en la documentación real de los proveedores,
+reduciendo el riesgo de información inventada, desactualizada o ajena al destino
+solicitado.
 
-La base de conocimiento se implementa sobre Amazon OpenSearch Serverless. Cada
-fragmento documental se almacena junto con su representación vectorial, su contenido textual y los metadatos extraídos durante el pipeline, como la ciudad, la provincia, el país y las actividades asociadas.
-
-Cuando un agente realiza una consulta, esta se transforma en un embedding mediante el modelo Titan Text Embeddings de Amazon Bedrock. A continuación, el cliente RAG ejecuta en OpenSearch Serverless una búsqueda \textit{k-nearest neighbours} (k-NN), combinada con filtros exactos de destino y provincia. De esta forma, se recuperan los fragmentos semánticamente más próximos sin mezclar documentación correspondiente a otras localizaciones.
+La base de conocimiento se implementa sobre Amazon OpenSearch Serverless: cada
+fragmento se almacena con su representación vectorial, su contenido textual y los
+metadatos extraídos en el pipeline (ciudad, provincia, país, actividades). Cuando un
+agente consulta, la petición se transforma en un embedding (Titan Text Embeddings) y el
+cliente RAG ejecuta en OpenSearch una búsqueda \textit{k-NN} combinada con filtros
+exactos de destino y provincia, recuperando los fragmentos más próximos sin mezclar
+documentación de otras localizaciones.
 
 La Figura~\ref{fig:rag-query-flow} resume el flujo de consulta implementado, desde la generación del embedding hasta la construcción del contexto enviado al modelo de lenguaje.
 
@@ -153,15 +117,13 @@ La Figura~\ref{fig:rag-query-flow} resume el flujo de consulta implementado, des
     \label{fig:rag-query-flow}
 \end{figure}
 
-Las comunicaciones con Amazon Bedrock y Amazon OpenSearch Serverless se realizan
-mediante credenciales y permisos de AWS IAM. Las peticiones a OpenSearch Serverless se firman mediante AWS Signature Version 4, evitando utilizar credenciales específicas de la base de datos dentro de la aplicación.
+Las comunicaciones con Bedrock y OpenSearch Serverless usan credenciales y permisos de
+AWS IAM, firmando las peticiones a OpenSearch mediante AWS Signature Version 4 para
+evitar credenciales específicas de la base de datos dentro de la aplicación. Tras
+recuperar los resultados, se aplica un umbral mínimo de relevancia que descarta los
+fragmentos de baja similitud antes de incorporarlos al contexto del modelo.
 
-Tras recuperar los resultados, se aplica un umbral mínimo de relevancia para descartar los fragmentos con baja similitud. Los fragmentos válidos se formatean junto con sus metadatos y se incorporan al contexto del modelo de lenguaje para generar una respuesta fundamentada.
-
-El sistema dispone también de un módulo de \textit{reranking} basado en Amazon
-Bedrock. Aunque está implementado y es funcional, no se invoca actualmente en la ruta activa de consulta, a la espera de evaluar su impacto en la calidad, la latencia y el coste.
-
-Los principales consumidores del sistema RAG son el agente de información, que recupera contexto cultural y actividades, y el agente de precios, que lo utiliza de forma complementaria para localizar alojamientos y servicios incluidos en la documentación de los proveedores.
+El sistema dispone también de un módulo de \textit{reranking} sobre Amazon Bedrock, implementado y funcional pero aún no invocado en la ruta activa de consulta, a la espera de evaluar su impacto en calidad, latencia y coste. Los principales consumidores del RAG son el agente de información (contexto cultural y actividades) y, de forma complementaria, el agente de precios (alojamientos y servicios de la documentación de proveedores).
 
 \TFMSection{Implementación del sistema multiagente}
 \label{sec:impl-multiagente}
@@ -170,7 +132,7 @@ El sistema multiagente se implementa como un grafo de estados en LangGraph, cuyo
 
 
 \subsection{Agente orquestador}
-Es el punto de entrada de cada conversación y el responsable de que el sistema entienda qué viaje se está solicitando antes de empezar a trabajar. Analiza cada mensaje del profesional y extrae de forma estructurada los datos necesarios (cliente, origen, destino, fechas e intereses), solicitando una aclaración cuando falta información en lugar de generar una propuesta con datos incompletos. Una decisión de diseño relevante para la experiencia de uso es que, si el profesional cambia de destino a mitad de la conversación, el agente descarta automáticamente la información y los precios ya recopilados para el destino anterior, evitando así que la propuesta final mezcle datos de dos viajes distintos; si en cambio solo cambian las fechas, conserva el contexto cultural ya recuperado y solo recalcula los precios. Antes de activar al resto de agentes, el orquestador confirma en lenguaje natural los datos que ha entendido (por ejemplo, \textit{``He recibido toda la información necesaria para el viaje del Colegio Jesuitas a Alicante. Estoy comenzando el proceso de generación del folleto promocional.''}), de forma que el profesional pueda verificar la interpretación antes de que el sistema invierta tiempo generando una propuesta a partir de datos mal entendidos.
+Es el punto de entrada de cada conversación: analiza cada mensaje del profesional y extrae de forma estructurada los datos necesarios (cliente, origen, destino, fechas e intereses), solicitando una aclaración cuando falta información en lugar de generar una propuesta incompleta. Si el profesional cambia de destino a mitad de conversación, descarta automáticamente la información y los precios ya recopilados para evitar mezclar datos de dos viajes; si solo cambian las fechas, conserva el contexto cultural y solo recalcula precios. Antes de activar al resto de agentes, confirma en lenguaje natural los datos entendidos (por ejemplo, \textit{``He recibido toda la información necesaria para el viaje del Colegio Jesuitas a Alicante. Estoy comenzando el proceso de generación del folleto promocional.''}), para que el profesional pueda corregir la interpretación antes de que el sistema invierta tiempo generando la propuesta.
 
 \begin{figure}[h!]
     \centering
@@ -187,32 +149,30 @@ Es el punto de entrada de cada conversación y el responsable de que el sistema 
 
 
 \subsection{Agente de información}
-Transforma la documentación turística indexada en un relato legible: recupera, para el destino y cada uno de los intereses expresados por el cliente, los fragmentos más relevantes de la base documental, descarta los que no superan un umbral mínimo de relevancia y sintetiza el resultado en un contexto cultural y un listado de actividades recomendadas. El valor de este agente es doble: evita que el profesional tenga que buscar manualmente en los documentos de los proveedores, y fundamenta la respuesta en contenido real en lugar de en conocimiento genérico del modelo.
+Recupera, para el destino y cada interés expresado por el cliente, los fragmentos más relevantes de la base documental, descarta los que no superan un umbral mínimo de relevancia y sintetiza el resultado en un contexto cultural y un listado de actividades recomendadas, evitando la búsqueda manual y fundamentando la respuesta en contenido real en lugar de conocimiento genérico del modelo.
 
 \subsection{Agente de precios}
-Combina dos fuentes de información para presentar opciones de vuelo y alojamiento: un servicio externo que consulta precios de mercado en tiempo real, y la propia base documental, para alojamientos concretos que solo aparecen en los catálogos de los proveedores. La selección de candidatos (los vuelos más económicos y los alojamientos mejor valorados) se calcula de forma determinista en código, no mediante el modelo de lenguaje, lo que garantiza que el orden de las opciones presentadas sea siempre coherente y verificable. El resultado no se aplica automáticamente: se presentan varias opciones de cada categoría para que el profesional elija (Figura~\ref{fig:manual-seleccion-precios}), manteniendo la decisión comercial en manos humanas.
+Combina un servicio externo de precios de mercado en tiempo real con la base documental (para alojamientos que solo aparecen en catálogos de proveedores). La selección de candidatos (vuelos más económicos, alojamientos mejor valorados) se calcula de forma determinista en código, no con el modelo de lenguaje, garantizando un orden siempre coherente y verificable. El resultado no se aplica automáticamente: se presentan varias opciones de cada categoría para que el profesional elija (Figura~\ref{fig:manual-seleccion-precios}), manteniendo la decisión comercial en manos humanas.
 
 \subsection{Generación del itinerario}
-A partir de la información turística recuperada, los precios seleccionados y las preferencias expresadas durante la conversación, se genera un itinerario día a día. Varios cálculos que podrían delegarse en el modelo de lenguaje se resuelven deliberadamente en código para garantizar su exactitud: la duración del viaje se calcula a partir de las fechas, y los horarios de los vuelos de llegada y salida se derivan de los precios seleccionados y se incorporan como instrucción al itinerario, en lugar de dejar que el modelo interprete horas de vuelo en formato libre. El itinerario también respeta un límite de extensión calculado a partir del espacio real disponible en la plantilla de la propuesta, de forma que el texto generado encaje siempre en el documento final sin necesidad de retoque manual.
+A partir de la información recuperada, los precios seleccionados y las preferencias de la conversación, se genera un itinerario día a día. Varios cálculos que podrían delegarse en el modelo se resuelven en código para garantizar su exactitud: duración del viaje a partir de las fechas, y horarios de vuelo incorporados como instrucción al itinerario en lugar de dejar que el modelo los interprete en formato libre. El itinerario respeta además un límite de extensión calculado según el espacio disponible en la plantilla, para que el texto encaje sin retoque manual.
 
-Cada jornada se redacta en tres bloques (Mañana, Tarde y Noche), combinando logística práctica (horarios de vuelo, margen para el aeropuerto, traslados) con recomendaciones concretas ancladas en la documentación recuperada. En una propuesta real generada para un grupo escolar, por ejemplo, el sistema incorporó al itinerario una condición de precio para grupos extraída directamente de la documentación de un proveedor (\textit{``para grupos +20 la entrada es 4€ p/p''}), mostrando que la personalización no se limita a adaptar el tono del texto, sino que también traslada al itinerario condiciones comerciales específicas del tipo de cliente cuando están disponibles en la base documental.
+Cada jornada se redacta en tres bloques (Mañana, Tarde y Noche), combinando logística práctica con recomendaciones ancladas en la documentación recuperada. En una propuesta real para un grupo escolar, el sistema incorporó una condición de precio para grupos extraída de la documentación de un proveedor (\textit{``para grupos +20 la entrada es 4€ p/p''}), mostrando que la personalización traslada al itinerario condiciones comerciales del tipo de cliente cuando están disponibles.
 
 \subsection{Generación de la propuesta comercial}
-La propuesta final combina dos elementos generados de forma independiente: una imagen de portada asociada al destino y a las actividades seleccionadas, generada mediante un modelo de generación de imágenes \parencite{openai-images-2025}, y el propio itinerario. Ambos se integran en una plantilla corporativa en formato PPTX ya existente, editable por el profesional, sustituyendo los textos e imágenes de la plantilla por el contenido generado y ajustando dinámicamente el número de diapositivas del itinerario según la duración del viaje. El valor de este agente es que entrega un documento comercial ya maquetado y listo para revisar o enviar, sin requerir intervención de diseño.
-
-Junto al desglose de precio, la propuesta incorpora automáticamente un apartado de condiciones comerciales --qué queda excluido del precio (por ejemplo, bebidas y extras personales) y una cláusula de que el precio final está sujeto a disponibilidad, número de viajeros y fecha de reserva (Figura~\ref{fig:manual-revision-flyer})--, de forma que el profesional no tenga que añadir manualmente estas salvedades antes de enviar la propuesta al cliente.
+La propuesta combina dos elementos generados de forma independiente --una imagen de portada \parencite{openai-images-2025} y el itinerario-- integrados en una plantilla corporativa PPTX editable, ajustando dinámicamente el número de diapositivas según la duración del viaje. El resultado es un documento ya maquetado y listo para revisar o enviar, sin intervención de diseño. La propuesta incorpora además, junto al precio, un apartado de condiciones comerciales (qué queda excluido y la sujeción a disponibilidad, viajeros y fecha de reserva; Figura~\ref{fig:manual-revision-flyer}), evitando que el profesional deba añadirlas manualmente.
 
 \subsection{Gestión del estado y transiciones}
-Todos los agentes anteriores comparten un mismo estado, que conserva los parámetros del viaje, la información recuperada, los precios, el itinerario y el resultado de cada etapa. Este estado se conserva de forma persistente cada vez que el flujo se detiene para una decisión humana, lo que permite que un profesional pueda interrumpir la elaboración de una propuesta y retomarla más adelante, incluso desde otra sesión, sin perder el trabajo ya realizado por el sistema. Las cuatro acciones disponibles en la pantalla de revisión final (Figura~\ref{fig:manual-revision-flyer}) --aprobar, rechazar, descartar o guardar como borrador-- se corresponden directamente con los valores que puede tomar el estado de revisión de la propuesta.
+Todos los agentes comparten un mismo estado (parámetros del viaje, información recuperada, precios, itinerario y resultado de cada etapa), que se conserva de forma persistente en cada decisión humana, permitiendo interrumpir una propuesta y retomarla más adelante sin perder el trabajo realizado. Las cuatro acciones de la revisión final (Figura~\ref{fig:manual-revision-flyer}) --aprobar, rechazar, descartar o guardar como borrador-- se corresponden directamente con los valores del estado de revisión.
 
-Con fines de depuración durante el desarrollo, la barra lateral de la pantalla de conversación incorpora además un panel \textit{State Inspector} (visible, por ejemplo, en la Figura~\ref{fig:manual-seleccion-precios}) que expone en formato JSON el historial completo de mensajes del grafo, incluyendo los objetos \texttt{HumanMessage} y \texttt{AIMessage} intercambiados en la conversación. Este panel no forma parte del flujo pensado para el profesional, pero ha resultado útil durante el desarrollo para verificar que el estado se serializa y persiste correctamente entre interrupciones.
+Con fines de depuración, la barra lateral incorpora un panel \textit{State Inspector} (Figura~\ref{fig:manual-seleccion-precios}) que expone en JSON el historial de mensajes del grafo; no forma parte del flujo del profesional, pero ha sido útil para verificar que el estado persiste correctamente entre interrupciones.
 
-Cabe señalar, como observación técnica honesta, que el mecanismo de \textit{checkpointing} en memoria (\texttt{MemorySaver}) utilizado actualmente no conserva la posición exacta del \texttt{interrupt} del grafo cuando el proceso se reinicia: al recrearse el grafo, \texttt{current\_state.next} ya no permite distinguir en qué punto de revisión humana se encontraba una propuesta restaurada. Como mitigación, la interfaz incorpora una heurística (\texttt{\_at\_human\_review}, \texttt{\_at\_pricing\_selection}) que infiere el punto de interrupción a partir del propio contenido del estado persistido (por ejemplo, presencia de opciones de precio candidatas sin selección final, o de un borrador de propuesta ya redactado) cuando la posición del \texttt{interrupt} no está disponible. Esta heurística resuelve el caso práctico de continuar una propuesta tras un reinicio del contenedor, pero no sustituye a una solución de fondo: la persistencia externa del estado conversacional interrumpido se mantiene como línea de trabajo futuro prioritaria (Capítulo 8).
+Como observación técnica honesta, el \textit{checkpointing} en memoria (\texttt{MemorySaver}) no conserva la posición exacta del \texttt{interrupt} tras un reinicio del proceso, por lo que una heurística infiere el punto de interrupción a partir del propio contenido persistido (por ejemplo, precios candidatos sin selección o un borrador ya redactado). Esta heurística resuelve el caso práctico, pero la persistencia externa del estado conversacional interrumpido se mantiene como trabajo futuro prioritario (Capítulo 8).
 
 \TFMSection{Observabilidad y trazabilidad (LangSmith)}
-Para dar cumplimiento al requisito RNF7 (Trazabilidad), se ha incorporado \textbf{LangSmith} como plataforma de observabilidad del orquestador multiagente, integrada mediante un módulo propio (\texttt{src/observability.py}) que actúa como capa fina sobre el trazado automático que LangChain y LangGraph ya ofrecen.
+Para dar cumplimiento al requisito RNF7 (Trazabilidad), se ha incorporado \textbf{LangSmith} como plataforma de observabilidad, integrada mediante un módulo propio (\texttt{src/observability.py}) que actúa como capa fina sobre el trazado automático de LangChain y LangGraph.
 
-La integración se ha diseñado para que sea completamente opcional y no invasiva: el trazado solo se activa cuando existen simultáneamente la variable \texttt{LANGSMITH\_TRACING=true} y una \texttt{LANGSMITH\_API\_KEY} válida, de forma que un entorno local que copie el fichero \texttt{.env.example} sin rellenar la clave siga funcionando de forma silenciosa, sin generar avisos del SDK ni alterar el comportamiento del grafo. Cuando el trazado está desactivado, las funciones del módulo devuelven una configuración vacía, por lo que su uso en el resto del código es un no-op transparente.
+La integración es opcional y no invasiva: solo se activa con \texttt{LANGSMITH\_TRACING=true} y una \texttt{LANGSMITH\_API\_KEY} válida, de forma que un entorno sin la clave configurada sigue funcionando en silencio; desactivada, el módulo es un no-op transparente para el resto del código.
 
 Cuando el trazado está activo, cada ejecución del grafo se enriquece con información de negocio que, de otro modo, quedaría invisible en un panel de trazas genérico:
 
@@ -222,107 +182,42 @@ Cuando el trazado está activo, cada ejecución del grafo se enriquece con infor
 \item \textbf{Nombres de ejecución legibles:} cada traza recibe un nombre descriptivo (por ejemplo, \textit{``Flyer generation — Cliente X''}) en lugar del identificador interno del grafo, facilitando la inspección manual del panel durante el desarrollo y la evaluación del sistema.
 \end{tfmbullets}
 
-Esta capa se ha propagado a los agentes orquestador, de información, de precios y de generación de imagen, así como al propio grafo (\texttt{src/graph.py}), de forma consistente con el resto de agentes que ya utilizaban salida estructurada. La integración se acompaña de pruebas unitarias dedicadas (\texttt{tests/unit/src/test\_observability.py}) que verifican tanto el comportamiento no-op cuando el trazado está desactivado como el enriquecimiento correcto de metadatos y etiquetas cuando está activo \parencite{langsmith2026docs}.
+Esta capa se ha propagado a los agentes orquestador, información, precios e imagen y al propio grafo (\texttt{src/graph.py}), con pruebas unitarias dedicadas (\texttt{tests/unit/src/test\_observability.py}) que verifican tanto el no-op como el enriquecimiento correcto de metadatos \parencite{langsmith2026docs}.
 
 \TFMSection{Integración con modelos de lenguaje}
 Cada agente utiliza el modelo de lenguaje más adecuado a su tarea, atendiendo a un equilibrio entre coste y fiabilidad: modelos con cuota de uso económica para tareas de alto volumen (interpretación de la conversación, reconocimiento de documentos) y modelos con mayor capacidad de generación estructurada para tareas donde un error tiene más impacto en el resultado final (recuperación de información, cálculo de precios, redacción del itinerario). En todos los casos se exige al modelo una salida estructurada validada contra un esquema de datos predefinido, en lugar de interpretar texto libre, lo que evita errores de formato en las respuestas y hace que el comportamiento del sistema sea predecible y verificable.
 
 \TFMSection{Integración con fuentes externas}
 
-La información disponible en la base documental no siempre incluye precios actualizados
-de vuelos y alojamientos. Por este motivo, el agente de precios se integra con SearchAPI,
-un servicio externo que permite consultar los resultados de Google Flights y Google
-Hotels mediante una API REST \parencite{searchapi2026flights,searchapi2026hotels}.
+La base documental no siempre incluye precios actualizados de vuelos y alojamientos, por lo que el agente de precios se integra con SearchAPI, un servicio externo que consulta Google Flights y Google Hotels mediante API REST \parencite{searchapi2026flights,searchapi2026hotels}.
 
-Para la búsqueda de vuelos se realizan dos consultas independientes: una para el trayecto
-de ida y otra para el de vuelta. Ambas peticiones se ejecutan en paralelo, reduciendo el
-tiempo total de respuesta y permitiendo combinar compañías aéreas diferentes cuando
-esta opción resulta más económica. Los resultados obtenidos incluyen información como
-los aeropuertos, los horarios, la duración, las escalas y el precio de cada trayecto.
+Para vuelos se lanzan en paralelo dos consultas independientes (ida y vuelta), lo que reduce el tiempo de respuesta y permite combinar aerolíneas distintas cuando resulta más económico; los resultados incluyen aeropuertos, horarios, duración, escalas y precio. Para alojamientos se consulta por destino, fechas y número de viajeros, normalizando nombre, valoración, precio y datos de la estancia. Ambos resultados se transforman en modelos internos comunes, de forma que el resto de la aplicación no depende de la estructura de SearchAPI y sería posible sustituir o añadir proveedores sin tocar la interfaz ni el flujo multiagente.
 
-La búsqueda de alojamientos utiliza el destino, las fechas de entrada y salida y el número de viajeros. A partir de la respuesta externa, el sistema selecciona y normaliza campos como el nombre del alojamiento, la valoración, el precio y la información disponible sobre la estancia.
+Durante el desarrollo se estudió primero integrar Amadeus mediante un servidor MCP, descartado por los cambios en su plataforma Self-Service y la imposibilidad de mantener un acceso gratuito adecuado para la prueba de concepto \parencite{amadeus2026developers}; SearchAPI permitió completar la integración con menor complejidad de acceso.
 
-Los resultados de vuelos y hoteles se transforman en modelos internos comunes antes
-de ser utilizados por el agente de precios. De esta forma, el resto de la aplicación no
-depende directamente de la estructura específica devuelta por SearchAPI y sería posible
-sustituir o incorporar nuevos proveedores sin modificar la interfaz ni el flujo
-multiagente.
-
-Durante el desarrollo se estudió inicialmente la integración con las API de Amadeus a
-través de un servidor MCP. Sin embargo, esta alternativa se descartó debido a los cambios
-en la disponibilidad de su plataforma Self-Service y a la imposibilidad de mantener un
-acceso gratuito adecuado para la prueba de concepto \parencite{amadeus2026developers}.
-Por ello, se optó por SearchAPI, que permitió completar la integración de vuelos y
-alojamientos con una menor complejidad de acceso.
-
-Los precios y la disponibilidad obtenidos deben considerarse orientativos, ya que pueden
-variar entre el momento de la consulta y la realización efectiva de la reserva. Por esta
-razón, el sistema presenta varias alternativas al profesional y mantiene la selección final
+Al tratarse de datos orientativos que pueden variar hasta la reserva efectiva (Capítulo~2), el sistema presenta varias alternativas al profesional y mantiene la selección final
 como un punto obligatorio de intervención humana.
 
 \TFMSection{Implementación de la API}
-La API de persistencia expone los servicios necesarios para que la interfaz y el pipeline documental compartan una única fuente de verdad: autenticación de usuarios, alta y consulta de metadatos documentales, y alta, consulta y actualización del estado de las propuestas. El acceso de los usuarios finales se protege mediante un token de sesión, mientras que el pipeline documental se autentica con una cuenta de servicio independiente, de forma que las credenciales de un empleado nunca se comparten con procesos automáticos internos. Una propuesta solo puede modificarse por la persona que la creó, aunque su consulta desde el histórico está abierta a cualquier usuario autenticado, en línea con el uso compartido que hace de la herramienta un equipo comercial.
+La API de persistencia expone los servicios que permiten a la interfaz y al pipeline documental compartir una única fuente de verdad: autenticación de usuarios, metadatos documentales y estado de las propuestas. Los usuarios finales se autentican con un token de sesión y el pipeline con una cuenta de servicio independiente, de forma que las credenciales de un empleado nunca se comparten con procesos automáticos. Una propuesta solo puede modificarla quien la creó, aunque su consulta desde el histórico está abierta a cualquier usuario autenticado, acorde al uso compartido de un equipo comercial.
 
 \TFMSection{Implementación del frontend}
 
-La interfaz se ha desarrollado en Streamlit como una aplicación conversacional orientada
-al personal interno de una agencia de viajes. Su objetivo es ocultar la complejidad del
-sistema multiagente y presentar al profesional únicamente la información y las decisiones
-necesarias en cada fase del proceso.
+La interfaz se ha desarrollado en Streamlit como una aplicación conversacional orientada al personal interno de una agencia de viajes, ocultando la complejidad del sistema multiagente y presentando solo la información y decisiones necesarias en cada fase.
 
-La aplicación se organiza en dos vistas principales. La primera corresponde a la pantalla
-de conversación, desde la que el usuario describe el viaje en lenguaje natural y recibe
-las respuestas generadas por el sistema. A partir de esta interacción, el agente
-orquestador extrae los parámetros necesarios y activa el resto de componentes del flujo.
-La segunda vista corresponde al histórico de propuestas, donde se muestran los viajes
-generados por el equipo, su estado y la información asociada a cada uno.
+Se organiza en dos vistas: la de conversación, desde la que el usuario describe el viaje en lenguaje natural y el orquestador extrae los parámetros y activa el resto del flujo; y el histórico, con los viajes generados por el equipo, su estado y su información asociada en formato tabular. Tras iniciar sesión, el usuario puede iniciar una conversación, consultar o retomar propuestas anteriores, o descargar una propuesta en PPTX.
 
-El acceso a la aplicación está protegido mediante autenticación. Tras iniciar sesión, el
-usuario puede iniciar una nueva conversación, consultar propuestas anteriores, retomar
-un borrador o descargar una propuesta generada en formato PPTX. Las capturas de la
-pantalla de inicio de sesión, la vista inicial de conversación y un ejemplo de petición
-pueden consultarse en las Figuras~\ref{fig:manual-login},
-\ref{fig:manual-orchestrator-vacio} y
-\ref{fig:manual-orchestrator-prompt} del
-Anexo~\ref{anexo:manual-aplicacion}.
+La interfaz implementa también los dos puntos de interacción humana del diseño: tras la consulta de precios, para seleccionar manualmente vuelo y alojamiento (o indicar que el cliente viaja por sus propios medios); y tras generar la propuesta comercial, para aprobarla, solicitar modificaciones, descartarla o guardarla como borrador, actualizando el estado compartido del grafo.
 
-La pantalla de histórico presenta en formato tabular los principales datos de cada
-propuesta, como el cliente, el origen, el destino, las fechas, los intereses, el estado y
-el usuario que la creó. Al seleccionar una propuesta, la interfaz muestra su contenido
-y permite descargar el documento, continuar su edición o recuperar un borrador
-existente. Esta funcionalidad se muestra en las
-Figuras~\ref{fig:manual-dashboard} y
-\ref{fig:manual-dashboard-detalle} del
-Anexo~\ref{anexo:manual-aplicacion}.
-
-La interfaz implementa además los dos puntos de interacción humana definidos en el
-diseño del sistema. El primero se produce tras la consulta de precios, cuando se muestran
-las opciones de vuelos y alojamientos recuperadas para que el profesional seleccione
-manualmente las alternativas que desea incorporar a la propuesta. También se permite
-indicar que el cliente viajará por sus propios medios, evitando así incluir una opción de
-vuelo. Este paso se ilustra en la
-Figura~\ref{fig:manual-seleccion-precios} del
-Anexo~\ref{anexo:manual-aplicacion}.
-
-El segundo punto de revisión tiene lugar una vez generada la propuesta comercial. En
-esta fase, el profesional puede aprobarla, solicitar modificaciones mediante comentarios,
-descartarla o guardarla como borrador. Estas acciones actualizan el estado compartido
-del grafo y determinan la siguiente transición del flujo multiagente. La pantalla de
-revisión final se incluye en la
-Figura~\ref{fig:manual-revision-flyer} del
-Anexo~\ref{anexo:manual-aplicacion}.
-
-El detalle completo del funcionamiento de la interfaz, junto con las capturas de todas las
-pantallas y el flujo de uso paso a paso, se recoge en el
+Todas las capturas de pantalla y el flujo de uso paso a paso se recogen en el
 Anexo~\ref{anexo:manual-aplicacion}.
 
 \TFMSection{Despliegue e Infraestructura en AWS}
 
 La solución se ha desplegado sobre una arquitectura híbrida en AWS, combinando
 servicios \textit{serverless} para el procesamiento documental y la persistencia con una
-instancia de ejecución permanente para la aplicación conversacional. La
-Figura~\ref{fig:aws-infrastructure} presenta una visión general de los componentes
-desplegados y de sus principales relaciones.
+instancia de ejecución permanente para la aplicación conversacional, tal como resume la
+Figura~\ref{fig:aws-infrastructure}.
 
 \begin{figure}[htbp]
     \centering
@@ -332,48 +227,29 @@ desplegados y de sus principales relaciones.
     \label{fig:aws-infrastructure}
 \end{figure}
 
-Amazon S3 actúa como repositorio documental principal. Los documentos originales, las
-imágenes generadas por página y los ficheros Markdown normalizados se almacenan en
-buckets separados, permitiendo conservar los resultados intermedios y desacoplar las
-etapas del procesamiento.
+Amazon S3 actúa como repositorio documental principal, con buckets separados para
+documentos originales, imágenes por página y Markdown normalizado, conservando
+resultados intermedios y desacoplando las etapas. Amazon DynamoDB implementa la
+persistencia estructurada (usuarios, metadatos documentales y estado de las
+propuestas), centralizada a través de la API backend en FastAPI. La base de
+conocimiento RAG se implementa sobre Amazon OpenSearch Serverless, con Amazon Bedrock
+generando los embeddings (Titan Text Embeddings) y el módulo opcional de reranking.
 
-La persistencia estructurada se implementa mediante Amazon DynamoDB. En esta base
-de datos se almacenan los usuarios de la aplicación, los metadatos extraídos de los
-documentos y el estado de las propuestas generadas. El acceso a esta información se
-centraliza a través de una API backend desarrollada con FastAPI.
+La interfaz en Streamlit, el orquestador multiagente y la API backend se ejecutan en
+una instancia Amazon EC2 mediante Docker y Docker Compose, lo que permite servicios de
+larga duración, conservar el estado de las conversaciones mientras la aplicación está
+activa, y actualizar cada componente reconstruyendo su contenedor. El sistema consulta
+además SearchAPI, de forma separada de los servicios internos de AWS.
 
-La base de conocimiento del sistema RAG se implementa sobre Amazon OpenSearch
-Serverless. Los fragmentos documentales, sus embeddings y los metadatos asociados se
-almacenan en una colección vectorial preparada para búsquedas por similitud y filtrado
-exacto. Amazon Bedrock se utiliza para generar los embeddings mediante Titan Text
-Embeddings y para el módulo opcional de reordenación semántica desarrollado durante
-el proyecto.
+El acceso a los recursos se controla mediante AWS IAM, con usuarios, roles y políticas
+diferenciadas por tarea (administración, despliegue, ejecución) y permisos mínimos para
+cada función Lambda y servicio interno, manteniendo las credenciales de los usuarios de
+la aplicación separadas de las identidades de los procesos automáticos.
 
-La interfaz en Streamlit, el orquestador multiagente y la API backend se ejecutan en una
-instancia Amazon EC2. Los componentes se despliegan mediante Docker y Docker Compose,
-manteniendo separados sus procesos y dependencias. Este enfoque permite ejecutar
-servicios de larga duración, conservar el estado de las conversaciones mientras la
-aplicación permanece activa y actualizar cada componente mediante la reconstrucción de
-su contenedor.
-
-El sistema consulta además SearchAPI como servicio externo para obtener información
-actualizada sobre vuelos y alojamientos. Esta integración se realiza desde el agente de
-precios y queda separada de los servicios internos de AWS.
-
-El acceso a los recursos se controla mediante AWS Identity and Access Management
-(IAM). Se han definido usuarios, roles y políticas con permisos diferenciados para las
-tareas de administración, despliegue y ejecución. Las funciones Lambda y los servicios
-internos disponen únicamente de los permisos necesarios para acceder a los buckets,
-tablas, modelos y colecciones utilizados, siguiendo el principio de mínimo privilegio.
-Las credenciales de los usuarios de la aplicación se mantienen separadas de las
-identidades empleadas por los procesos automáticos.
-
-La infraestructura se ha configurado manualmente mediante la consola de AWS y
-variables de entorno específicas para cada componente. Esta aproximación ha permitido
-validar la arquitectura completa dentro del alcance de la prueba de concepto, aunque
-reduce su reproducibilidad y dificulta auditar los cambios realizados. Por ello, la
-definición de la infraestructura mediante herramientas de \textit{Infrastructure as Code}
-se plantea como una línea prioritaria de trabajo futuro.
+La infraestructura se ha configurado manualmente en la consola de AWS, lo que ha
+permitido validar la arquitectura completa dentro del alcance de la prueba de concepto
+pero reduce su reproducibilidad y dificulta auditar los cambios; la definición mediante
+\textit{Infrastructure as Code} se plantea como línea prioritaria de trabajo futuro.
 
 \TFMSection{Seguridad y gestión de errores}
 El sistema incorpora varios mecanismos para tolerar fallos sin interrumpir la experiencia del profesional: reintentos automáticos ante errores transitorios de los proveedores de modelos de lenguaje, y una degradación controlada cuando el sistema RAG o las fuentes externas de precios no están disponibles, de forma que el flujo continúa (por ejemplo, sin contexto documental o sin precios de una fuente) en lugar de interrumpirse por completo. Esta decisión es especialmente relevante en un sistema orientado a un caso de uso comercial, donde una propuesta incompleta pero disponible resulta más útil que un error que bloquee todo el proceso.

@@ -1,10 +1,10 @@
 \clearpage\thispagestyle{empty}\null\clearpage
 \TFMChapter{Pruebas y Validación del Producto}
 \TFMSection{Introducción}
-Este capítulo describe las pruebas realizadas sobre la solución. Se detalla en primer lugar la suite de pruebas automatizadas del proyecto, que verifica el comportamiento de los componentes descritos en el Capítulo 4. A continuación se presenta la observabilidad en producción, basada en las trazas reales recogidas por LangSmith, que permite verificar el comportamiento del sistema en condiciones de uso real. La sección de usabilidad presenta un recorrido guiado por la interfaz implementada a partir de capturas reales, ya que la evaluación formal de usabilidad con usuarios queda pendiente de realizar en esta versión.
+Este capítulo describe las pruebas realizadas sobre la solución: primero la suite automatizada que verifica los componentes del Capítulo 4, después la observabilidad en producción basada en trazas reales de LangSmith, y por último un recorrido guiado por la interfaz a partir de capturas reales, ya que la evaluación formal de usabilidad con usuarios queda pendiente en esta versión.
 
 \TFMSection{Tests Unitarios/Funcionales y Evaluación del Usuario}
-El proyecto cuenta con una suite de pruebas automatizadas basada en \texttt{pytest}, organizada en dos niveles: pruebas unitarias, que verifican de forma aislada la lógica de cada componente, y pruebas de integración, que verifican el comportamiento conjunto de varios componentes reales. En el momento de escribir esta memoria, la suite reúne 109 pruebas recogidas correctamente, distribuidas principalmente en:
+El proyecto cuenta con una suite de pruebas basada en \texttt{pytest}, con pruebas unitarias (lógica de cada componente de forma aislada) y de integración (comportamiento conjunto de varios componentes reales). En el momento de escribir esta memoria reúne 109 pruebas correctas, distribuidas principalmente en:
 
 \begin{tfmbullets}
 \item Pruebas unitarias de los agentes del sistema multiagente (agente de información, agente de precios), del cliente RAG, de la persistencia del estado y de la generación de la propuesta comercial.
@@ -16,29 +16,29 @@ El proyecto cuenta con una suite de pruebas automatizadas basada en \texttt{pyte
 
 
 \TFMSection{UX/Usabilidad}
-A continuación se presenta un recorrido guiado por la interfaz implementada, con capturas reales del sistema en ejecución (descrita en detalle en la Sección~4.10), evaluando cualitativamente las principales decisiones de diseño de interacción.
+A continuación se presenta un recorrido guiado por la interfaz implementada, con capturas reales del sistema (Sección~4.10), evaluando cualitativamente las principales decisiones de diseño de interacción.
 
-\textbf{Acceso y punto de entrada único.} Como muestra la Figura~\ref{fig:manual-login}, el acceso a la aplicación exige autenticación previa, en línea con RF13 y con la necesidad de que cada propuesta quede asociada a un usuario responsable (Sección~4.9). El formulario se limita a dos campos y un único botón de acción, sin elementos que distraigan del objetivo inmediato: iniciar sesión.
+\textbf{Acceso y punto de entrada único.} El acceso exige autenticación previa (Figura~\ref{fig:manual-login}), en línea con RF13 y con la necesidad de asociar cada propuesta a un usuario responsable (Sección~4.9), con un formulario de solo dos campos sin distracciones.
 
-\textbf{La conversación como interfaz principal.} La pantalla de Orchestrator (Figura~\ref{fig:manual-orchestrator-vacio}) reduce la superficie de interacción a un único campo de texto libre, evitando que el profesional deba aprender un formulario estructurado con campos técnicos (códigos de destino, identificadores de proveedor, etc.). La Figura~\ref{fig:manual-orchestrator-prompt} muestra una petición real introducida durante las pruebas (\textit{``Quiero realizar un viaje a Alicante desde Madrid para el colegio jesuitas del día 1 de septiembre al día 5, queremos ver museos''}), redactada en el mismo lenguaje que usaría el profesional con un compañero de trabajo, sin necesidad de estructurar la solicitud en campos separados.
+\textbf{La conversación como interfaz principal.} La pantalla de Orchestrator (Figura~\ref{fig:manual-orchestrator-vacio}) reduce la interacción a un único campo de texto libre, sin formularios estructurados con campos técnicos. La Figura~\ref{fig:manual-orchestrator-prompt} muestra una petición real (\textit{``Quiero realizar un viaje a Alicante desde Madrid para el colegio jesuitas del día 1 de septiembre al día 5, queremos ver museos''}), redactada como lo haría el profesional con un compañero, sin campos separados.
 
-\textbf{Transparencia del origen de cada dato.} En la pantalla de selección de precios (Figura~\ref{fig:manual-seleccion-precios}), cada opción de alojamiento se etiqueta con su fuente (\texttt{[SearchAPI]}), su puntuación y un enlace a su ficha, y se acompaña de los puntos de interés cercanos; un checkbox adicional permite indicar que el cliente se desplaza por sus propios medios. Esta visibilidad evita que el profesional tenga que confiar ciegamente en una recomendación del sistema sin poder verificar de dónde procede.
+\textbf{Transparencia del origen de cada dato.} En la selección de precios (Figura~\ref{fig:manual-seleccion-precios}), cada alojamiento muestra su fuente (\texttt{[SearchAPI]}), puntuación, ficha y puntos de interés cercanos, además de un checkbox para indicar desplazamiento por cuenta propia, evitando que el profesional confíe a ciegas en la recomendación.
 
-\textbf{Reconocimiento antes que recuerdo.} En la pantalla de Dashboard (Figura~\ref{fig:manual-dashboard}), el profesional no necesita recordar qué propuestas ha generado ni en qué estado se encuentra cada una: la tabla expone de un vistazo cliente, origen, destino, fechas, intereses y estado, evitando que el usuario dependa de su memoria para retomar un trabajo anterior.
+\textbf{Reconocimiento antes que recuerdo.} El Dashboard (Figura~\ref{fig:manual-dashboard}) expone de un vistazo cliente, origen, destino, fechas, intereses y estado de cada propuesta, sin depender de la memoria del profesional.
 
-\textbf{Divulgación progresiva del itinerario.} Al abrir el detalle de una propuesta (Figura~\ref{fig:manual-dashboard-detalle}), el itinerario se presenta día a día en bloques colapsables, con únicamente la primera jornada expandida por defecto. Esta decisión evita saturar al profesional con el contenido íntegro de un viaje de varios días de una sola vez, y le permite revisar cada jornada de forma independiente antes de dar por buena la propuesta completa.
+\textbf{Divulgación progresiva del itinerario.} El detalle de una propuesta (Figura~\ref{fig:manual-dashboard-detalle}) presenta el itinerario día a día en bloques colapsables, con solo la primera jornada expandida, evitando saturar al profesional con el contenido íntegro del viaje.
 
-\textbf{Cierre claro de la tarea.} El desglose de precio y el listado de elementos incluidos se muestran junto al itinerario, y dos acciones explícitas --\textit{Descargar propuesta (PPTX)} e \textit{Iterar}-- delimitan con claridad qué puede hacer el profesional a partir de ese punto, evitando ambigüedad sobre el siguiente paso del proceso.
+\textbf{Cierre claro de la tarea.} El desglose de precio y los elementos incluidos se muestran junto al itinerario, con dos acciones explícitas --\textit{Descargar propuesta (PPTX)} e \textit{Iterar}-- sin ambigüedad sobre el siguiente paso.
 
-\textbf{Control humano en el cierre del proceso.} La pantalla de revisión final (Figura~\ref{fig:manual-revision-flyer}) ofrece cuatro acciones igualmente visibles --\textit{Aprobar y Publicar}, \textit{Rechazar y Corregir}, \textit{Descartar} y \textit{Guardar draft}-- además de un campo de texto libre para justificar un rechazo. Ninguna de las cuatro se ejecuta por defecto ni se preselecciona, de forma que publicar una propuesta con implicación comercial directa exige siempre una acción explícita del profesional, coherente con el objetivo de mantener el criterio humano en las decisiones de negocio (Sección~1.2).
+\textbf{Control humano en el cierre del proceso.} La revisión final (Figura~\ref{fig:manual-revision-flyer}) ofrece cuatro acciones igualmente visibles --\textit{Aprobar y Publicar}, \textit{Rechazar y Corregir}, \textit{Descartar} y \textit{Guardar draft}--, ninguna preseleccionada, de forma que publicar exige siempre una acción explícita del profesional (Sección~1.2).
 
-Este recorrido no sustituye una evaluación de usabilidad formal, que se recoge como línea de trabajo futuro en el Capítulo~8, pero permite constatar que las decisiones de diseño de la interfaz --un único campo conversacional, tablas para el histórico, divulgación progresiva del itinerario y acciones explícitas de cierre-- están orientadas a que un empleado sin formación técnica pueda operar el sistema sin asistencia adicional.
+Este recorrido no sustituye una evaluación de usabilidad formal, pendiente como trabajo futuro (Capítulo~8), pero constata que las decisiones de diseño --campo conversacional único, tablas para el histórico, divulgación progresiva y acciones explícitas de cierre-- buscan que un empleado sin formación técnica opere el sistema sin asistencia adicional.
 
 \TFMSection{Observabilidad en Producción}
-La integración de LangSmith descrita en la Sección~4.7 ha permitido recoger trazas de las ejecuciones reales del sistema en el proyecto \texttt{tfm-ebis}. En el momento de escribir esta memoria, el proyecto acumula 51~trazas (turnos del grafo) correspondientes a 21~conversaciones de generación de folletos promocionales, de las que 14~completaron el flyer íntegro. Cada traza se registra como una run raíz de tipo \textit{chain} (el grafo LangGraph), que contiene como runs anidados cada llamada a los modelos de lenguaje de los agentes; una misma conversación encadena varias trazas (una por turno) debido a los puntos de revisión humana.
+La integración de LangSmith (Sección~4.7) ha permitido recoger trazas de las ejecuciones reales del proyecto \texttt{tfm-ebis}: 51~trazas (turnos del grafo) de 21~conversaciones, de las que 14~completaron el flyer íntegro. Cada traza se registra como una run raíz de tipo \textit{chain}, con las llamadas a los modelos de cada agente como runs anidados; una misma conversación encadena varias trazas por los puntos de revisión humana.
 
 \subsection{Métricas en producción}
-La Tabla~\ref{tab:prod-metrics} muestra las métricas agregadas extraídas de las trazas. Estas métricas permiten verificar el comportamiento del sistema en condiciones reales: la tasa de error es del 0\%, el coste medio por traza es de 0{,}043~\$ y la latencia mediana por traza de 24{,}5~s; el coste medio de un flyer completo (agregando por \texttt{thread\_id} todas las trazas de la conversación) asciende a 0{,}128~\$ con una latencia mediana de 166{,}1~s. La observabilidad no se limita a la verificación \textit{a posteriori}: el panel de LangSmith permite monitorizar las ejecuciones en tiempo real, filtrar por cliente o por identificador de propuesta, e inspeccionar el prompt y la respuesta de cada llamada al modelo.
+La Tabla~\ref{tab:prod-metrics} muestra las métricas agregadas extraídas de las trazas, que confirman el comportamiento del sistema en condiciones reales: 0\% de error, 0{,}043~\$ y 24{,}5~s de mediana por traza, y 0{,}128~\$ con 166{,}1~s por flyer completo (agregando por \texttt{thread\_id}). La observabilidad no se limita a la verificación \textit{a posteriori}: el panel de LangSmith permite monitorizar en tiempo real, filtrar por cliente o propuesta, e inspeccionar el prompt y la respuesta de cada llamada.
 
 \begin{table}[htbp]
 \centering
@@ -65,7 +65,7 @@ Latencia flyer completo p50 & 166{,}1 s \\
 \end{table}
 
 \subsection{Estructura de una traza}
-Cada ejecución del grafo genera un árbol de runs en LangSmith cuya estructura refleja el flujo del sistema multiagente. La Figura~\ref{fig:trace-tree} muestra el árbol de una traza real correspondiente a un flyer completo: la raíz es la ejecución del grafo (\textit{Flyer generation}), y sus hijos son las llamadas a cada agente. Cada nodo muestra el agente, el modelo utilizado, la latencia y el coste de esa llamada. El etiquetado con \texttt{flyer\_id} y \texttt{client\_name} permite localizar cualquier conversación en el panel sin necesidad de buscar por identificador interno del grafo.
+Cada ejecución del grafo genera un árbol de runs en LangSmith que refleja el flujo multiagente. La Figura~\ref{fig:trace-tree} muestra el árbol de una traza real de un flyer completo: la raíz es la ejecución del grafo (\textit{Flyer generation}) y sus hijos las llamadas a cada agente, cada una con su modelo, latencia y coste. El etiquetado con \texttt{flyer\_id} y \texttt{client\_name} permite localizar cualquier conversación sin buscar por identificador interno del grafo.
 
 \begin{figure}[htbp]
 \centering
@@ -99,11 +99,11 @@ Cada ejecución del grafo genera un árbol de runs en LangSmith cuya estructura 
 \end{figure}
 
 \subsection{Trazabilidad y depuración}
-El etiquetado de cada ejecución con metadatos de negocio (\texttt{flyer\_id}, \texttt{client\_name}) y por agente (\texttt{agent:orchestrator}, \texttt{agent:information}, etc.) permite dos modos de uso del panel:
+El etiquetado con metadatos de negocio (\texttt{flyer\_id}, \texttt{client\_name}) y por agente (\texttt{agent:orchestrator}, etc.) permite dos modos de uso del panel:
 
 \begin{tfmbullets}
-\item \textbf{Depuración por propuesta:} filtrar todas las trazas por \texttt{client\_name} localiza inmediatamente la conversación de un cliente concreto, mostrando el flujo completo de agentes, los prompts enviados a cada modelo y las respuestas recibidas. Esto es especialmente útil cuando un profesional reporta un problema con una propuesta específica.
-\item \textbf{Análisis por agente:} filtrar por la etiqueta de agente permite desglosar coste, tokens y latencia de un agente concreto a lo largo de todas las ejecuciones, identificando cuellos de botella o consumos anómalos sin necesidad de revisar trazas individualmente.
+\item \textbf{Depuración por propuesta:} filtrar por \texttt{client\_name} localiza la conversación de un cliente concreto, con el flujo completo de agentes, prompts y respuestas --útil cuando reporta un problema con una propuesta específica.
+\item \textbf{Análisis por agente:} filtrar por etiqueta de agente desglosa coste, tokens y latencia de un agente a lo largo de todas las ejecuciones, identificando cuellos de botella sin revisar trazas individualmente.
 \end{tfmbullets}
 
-La extracción reproducible de métricas se ha automatizado mediante el script \texttt{scripts/extract\_metrics.py}, que vuelca todas las trazas del proyecto a ficheros JSON para su análisis offline. Este enfoque garantiza que los resultados presentados en el Capítulo~5 sean verificables y actualizables a medida que el sistema acumule más ejecuciones.
+La extracción reproducible se ha automatizado con \texttt{scripts/extract\_metrics.py}, que vuelca todas las trazas a JSON, garantizando que los resultados del Capítulo~5 sean verificables y actualizables con más ejecuciones.
