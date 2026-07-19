@@ -11,6 +11,7 @@ Más allá de las métricas de coste y rendimiento presentadas en el Capítulo~5
 \item \textbf{Merece la pena indagar en las capacidades que ya ofrece el proveedor cloud antes de construirlas.} Servicios como el \textit{reranking} de Amazon Bedrock o la salida estructurada de los proveedores de modelos resuelven de fábrica problemas que, de otro modo, habría que implementar y mantener manualmente.
 \item \textbf{No existe un único modelo óptimo para todas las tareas.} Elegir el modelo según el equilibrio coste/fiabilidad que exige cada tarea --económico para tareas de alto volumen, más capaz donde un error tiene más impacto-- resultó más eficiente que emplear un mismo modelo para todo el sistema (Sección~4.8).
 \item \textbf{Dockerizar el entorno desde el principio reduce las sorpresas en el despliegue.} Trabajar con contenedores desde las primeras fases evitó buena parte de los problemas de despliegue.
+\end{tfmbullets}
 
 \TFMSection{Riesgos, Ética y Mitigaciones}
 El carácter de prueba de concepto del proyecto no exime de analizar sus riesgos como si fuera a manejar información y clientes reales, ya que muchas de las decisiones tomadas tendrían que revisarse precisamente antes de dar ese paso. Esta sección recoge los riesgos identificados durante el desarrollo, agrupados en tres bloques, junto con las mitigaciones ya incorporadas y las que quedan pendientes.
