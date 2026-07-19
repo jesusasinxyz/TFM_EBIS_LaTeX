@@ -76,7 +76,7 @@ La distribución por destino refleja la documentación disponible (Barcelona 101
 \TFMSection{Evaluación del sistema multiagente}
 El grafo multiagente se compone de cinco agentes invocados en distintas fases: orquestador (parámetros), información (RAG), precios (fuentes externas), redacción (itinerario) e imagen (portada); LangSmith etiqueta cada llamada con el agente responsable, permitiendo desglosar las métricas.
 
-La Tabla~\ref{tab:agent-metrics} resume las métricas por agente. El orquestador (\texttt{gemini-3.1-flash-lite}) es el más ligero (32~invocaciones, 1{,}1~s de mediana, 0{,}011~\$ de coste total); información y precios, ambos con \texttt{gpt-4o}, concentran el mayor volumen de tokens de entrada por el contexto RAG; y redacción (\texttt{gpt-5}) es el más costoso y lento (15~invocaciones, 84~s de mediana, 0{,}91~\$, con un 54\% de tokens de razonamiento interno).
+La Tabla~\ref{tab:agent-metrics} resume las métricas por agente. El orquestador (\texttt{gemini-3.1-flash-lite}) es el más ligero (32~invocaciones, 1{,}1~s de mediana, 0{,}011~\$ de coste total); información y precios, ambos con \texttt{gpt-4o}, concentran el mayor volumen de tokens de entrada por el contexto RAG; y redacción (\texttt{gpt-5}) es el más costoso y lento (15~invocaciones, 84~s de mediana, 0{,}91~\$, con un 54\% de tokens de razonamiento interno). El agente de imagen (\texttt{gpt-image-2}) no aparece en las trazas LLM de LangSmith, por lo que su coste se ha estimado a partir del prompt real del proyecto (~367~tokens de texto) y del tamaño y calidad configurados en el código (1232x1744, \textit{low}, ~408~tokens de salida): unos 0{,}014~\$ y 775~tokens por imagen, es decir, 0{,}211~\$ y 11\,625~tokens para las 15~invocaciones registradas.
 
 \begin{table}[htbp]
 \centering
@@ -89,12 +89,12 @@ Orquestador & gemini-3.1-flash-lite & 32 & 1{,}1 & 0{,}011 & 15\,911 & 0\,0 \\
 Información & gpt-4o & 22 & 15{,}1 & 0{,}876 & 296\,473 & 0\,0 \\
 Precios & gpt-4o & 11 & 2{,}5 & 0{,}177 & 82\,772 & 0\,0 \\
 Redacción & gpt-5 & 15 & 84{,}0 & 0{,}910 & 136\,651 & 53{,}6 \\
-Imagen & gpt-image-2 & 15 & 23{,}7 & --- & --- & --- \\
+Imagen & gpt-image-2 & 15 & 23{,}7 & 0{,}211* & 11\,625* & 0\,0 \\
 \midrule
-\textbf{Total} & & \textbf{105} & & \textbf{2{,}173} & \textbf{589\,845} & \\
+\textbf{Total} & & \textbf{105} & & \textbf{2{,}185} & \textbf{543\,432} & \\
 \bottomrule
 \end{tabular}
-\caption{Métricas operativas por agente sobre las 51~trazas, extraídas de LangSmith.}
+\caption{Métricas operativas por agente sobre las 51~trazas, extraídas de LangSmith. *El agente de imagen no registra coste ni tokens en las trazas LLM; los valores mostrados son una estimación calculada a partir de los parámetros reales del código (\texttt{gpt-image-2}, tamaño 1232x1744, calidad \textit{low}) y las tarifas oficiales de OpenAI (\$5/M tokens de texto de entrada, \$30/M tokens de imagen de salida).}
 \label{tab:agent-metrics}
 \end{table}
 
@@ -261,10 +261,10 @@ Conversaciones (threads) & 21 \\
 Conversaciones completadas & 14 (67\,\%) \\
 Tasa de error & 0\,0\,\% \\
 Runs LLM totales & 105 \\
-Coste total LLM & 2{,}17 \$ \\
+Coste total LLM & 2{,}19 \$ \\
 Coste medio por traza & 0{,}043 \$ \\
-Tokens totales & 589\,845 \\
-Tokens medios por traza & 11\,566 \\
+Tokens totales & 543\,432 \\
+Tokens medios por traza & 10\,656 \\
 Latencia traza p50 & 24{,}5 s \\
 Latencia traza p99 & 348{,}6 s \\
 \midrule
@@ -274,7 +274,7 @@ Fragmentos por consulta & 11{,}2 \\
 Score medio RAG & 0{,}665 \\
 \bottomrule
 \end{tabular}
-\caption{Resultados globales del sistema sobre las 51~trazas (turnos).}
+\caption{Resultados globales del sistema sobre las 51~trazas (turnos). El coste y los tokens del agente de imagen no se registran en LangSmith y se han estimado (Tabla~\ref{tab:agent-metrics}).}
 \label{tab:global-results}
 \end{table}
 
@@ -298,15 +298,15 @@ Flyers completados & 14 \\
 Tasa de error & 0\,0\,\% \\
 Turnos por flyer (media) & 3{,}0 (mín.\ 2, máx.\ 7) \\
 Runs LLM por flyer (media) & 6{,}1 \\
-Coste medio por flyer & 0{,}128 \$ \\
-Coste p50 por flyer & 0{,}106 \$ \\
-Coste p99 por flyer & 0{,}328 \$ \\
-Tokens medios por flyer & 33\,202 \\
+Coste medio por flyer & 0{,}143 \$ \\
+Coste p50 por flyer & 0{,}121 \$ \\
+Coste p99 por flyer & 0{,}343 \$ \\
+Tokens medios por flyer & 34\,032 \\
 Latencia flyer p50 & 166{,}1 s \\
 Latencia flyer p99 & 1\,329{,}0 s \\
 \bottomrule
 \end{tabular}
-\caption{Métricas de un flyer completo, agregando por \texttt{thread\_id} las 14~conversaciones que finalizaron.}
+\caption{Métricas de un flyer completo, agregando por \texttt{thread\_id} las 14~conversaciones que finalizaron. Incluye el coste estimado del agente de imagen (Tabla~\ref{tab:agent-metrics}).}
 \label{tab:flyer-completo}
 \end{table}
 
@@ -318,16 +318,16 @@ Latencia flyer p99 & 1\,329{,}0 s \\
 Métrica & Por traza (turno) & Por flyer completo \\
 \midrule
 Unidades & 51 & 14 \\
-Coste medio & 0{,}043 \$ & 0{,}128 \$ \\
+Coste medio & 0{,}043 \$ & 0{,}143 \$ \\
 Latencia p50 & 24{,}5 s & 166{,}1 s \\
 Latencia p99 & 348{,}6 s & 1\,329{,}0 s \\
-Tokens medios & 11\,566 & 33\,202 \\
+Tokens medios & 10\,656 & 34\,032 \\
 \bottomrule
 \end{tabular}
 \caption{Comparativa entre métricas por traza (51~trazas) y por flyer completo (14~conversaciones).}
 \label{tab:traza-vs-flyer}
 \end{table}
 
-El coste medio real de un flyer completo (0{,}128~\$) triplica el coste por traza, y su latencia mediana (166{,}1~s, 2{,}8~min) frente a los 24{,}5~s de un turno aislado, con un percentil 99 de 1\,329~s (22~min) en conversaciones de hasta 7~turnos, son los valores a usar al estimar coste y tiempo de operación en un escenario comercial real: cada revisión humana añade un turno y nuevas invocaciones del orquestador, la información y los precios.
+El coste medio real de un flyer completo (0{,}143~\$, incluyendo la imagen de portada estimada) triplica el coste por traza, y su latencia mediana (166{,}1~s, 2{,}8~min) frente a los 24{,}5~s de un turno aislado, con un percentil 99 de 1\,329~s (22~min) en conversaciones de hasta 7~turnos, son los valores a usar al estimar coste y tiempo de operación en un escenario comercial real: cada revisión humana añade un turno y nuevas invocaciones del orquestador, la información y los precios.
 
 El análisis por agente (Tabla~\ref{tab:agent-metrics}) mantiene dos hallazgos al agregar por flyer: redacción (\texttt{gpt-5}) concentra el 42\% del coste y el 84\% de la latencia por sus tokens de razonamiento (53{,}6\%), el punto natural de optimización (por ejemplo, un modelo sin razonamiento interno); e información (\texttt{gpt-4o}) consume el 50\% de los tokens por el contexto RAG, ya optimizado a 5~chunks por día (máximo 4~actividades por jornada), aunque cabría explorar más compresión de contexto.

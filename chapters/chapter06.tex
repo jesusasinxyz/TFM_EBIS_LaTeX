@@ -38,7 +38,7 @@ Este recorrido no sustituye una evaluación de usabilidad formal, pendiente como
 La integración de LangSmith (Sección~4.7) ha permitido recoger trazas de las ejecuciones reales del proyecto \texttt{tfm-ebis}: 51~trazas (turnos del grafo) de 21~conversaciones, de las que 14~completaron el flyer íntegro. Cada traza se registra como una run raíz de tipo \textit{chain}, con las llamadas a los modelos de cada agente como runs anidados; una misma conversación encadena varias trazas por los puntos de revisión humana.
 
 \subsection{Métricas en producción}
-La Tabla~\ref{tab:prod-metrics} muestra las métricas agregadas extraídas de las trazas, que confirman el comportamiento del sistema en condiciones reales: 0\% de error, 0{,}043~\$ y 24{,}5~s de mediana por traza, y 0{,}128~\$ con 166{,}1~s por flyer completo (agregando por \texttt{thread\_id}). La observabilidad no se limita a la verificación \textit{a posteriori}: el panel de LangSmith permite monitorizar en tiempo real, filtrar por cliente o propuesta, e inspeccionar el prompt y la respuesta de cada llamada.
+La Tabla~\ref{tab:prod-metrics} muestra las métricas agregadas extraídas de las trazas, que confirman el comportamiento del sistema en condiciones reales: 0\% de error, 0{,}043~\$ y 24{,}5~s de mediana por traza, y 0{,}143~\$ con 166{,}1~s por flyer completo (agregando por \texttt{thread\_id}, incluyendo el coste estimado del agente de imagen). La observabilidad no se limita a la verificación \textit{a posteriori}: el panel de LangSmith permite monitorizar en tiempo real, filtrar por cliente o propuesta, e inspeccionar el prompt y la respuesta de cada llamada.
 
 \begin{table}[htbp]
 \centering
@@ -52,15 +52,15 @@ Conversaciones (threads) & 21 \\
 Flyers completados & 14 (67\,\%) \\
 Tasa de error & 0\,0\,\% \\
 Runs LLM totales & 105 \\
-Coste total & 2{,}17 \$ \\
+Coste total & 2{,}19 \$ \\
 Coste medio por traza & 0{,}043 \$ \\
-Coste medio por flyer completo & 0{,}128 \$ \\
-Tokens totales & 589\,845 \\
+Coste medio por flyer completo & 0{,}143 \$ \\
+Tokens totales & 543\,432 \\
 Latencia traza p50 & 24{,}5 s \\
 Latencia flyer completo p50 & 166{,}1 s \\
 \bottomrule
 \end{tabular}
-\caption{Métricas de producción agregadas, extraídas del proyecto \texttt{tfm-ebis} en LangSmith.}
+\caption{Métricas de producción agregadas, extraídas del proyecto \texttt{tfm-ebis} en LangSmith. El coste y los tokens del agente de imagen no se registran en las trazas LLM y se han estimado (Capítulo~5).}
 \label{tab:prod-metrics}
 \end{table}
 
